@@ -11,7 +11,7 @@ Este repositorio utiliza un conjunto de datos público que contiene información
 ### Objetivo del Proyecto
 
 El conjunto de datos original cubre el período de 2013 a 2023. Nuestro equipo lo utilizará con el objetivo de **analizar cómo cambió el comportamiento de los taxis antes, durante y después de la pandemia**.
-Nos enfocaremos especialmente en los años 2019 a 2022, con el fin de identificar variaciones en la movilidad y en cuanto precios y tendecncias de propinas.
+Nos enfocaremos especialmente en los años 2019 a 2022, con el fin de identificar variaciones en la movilidad, precios y tendencias como pueden ser las propinas.
 
 ### Consideraciones Éticas
 
