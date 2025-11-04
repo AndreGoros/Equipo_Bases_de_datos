@@ -34,7 +34,7 @@ El conjunto de datos completo cuenta con 23 atributos:
 
 -----
 
-## B) Carga Inicial y C) Limpieza de Datos
+## B) Carga Inicial 
 
 Esta sección documenta el proceso de Ingesta, Transformación y Carga (ETL) para preparar los datos brutos para el análisis.
 
@@ -128,5 +128,61 @@ FROM
 WHERE
     EXTRACT(YEAR FROM CAST(col3 AS TIMESTAMP)) BETWEEN 2019 AND 2022;
 ```
+¡Absolutamente\! Has hecho un excelente trabajo de perfilado y limpieza de datos.
 
-Al terminar este script, la tabla `taxis_raw` quedó poblada con los datos limpios, filtrados y listos para la siguiente fase de limpieza y normalización.
+Aquí tienes esa información formateada como una sección profesional para tu archivo `README.md`.
+
+-----
+
+## C) Limpieza de Datos
+
+Después de la fase de carga (Sección B), la tabla `taxis_raw` contenía **30,694,643** registros. Sin embargo, estos datos, aunque limpios en formato, requerían una limpieza lógica para asegurar la integridad del análisis.
+
+Se ejecutaron varias consultas de perfilado para identificar y tratar datos anómalos, irrelevantes o erróneos.
+
+### Resumen de la Limpieza Lógica
+
+  * **Viajes con Tiempos Inválidos:** Se identificaron **9,812,064** registros donde la fecha/hora de fin (`trip_end_timestamp`) era anterior o igual a la de inicio. Estos datos son ilógicos y se eliminaron.
+  * **Viajes sin Geografía:** Se encontraron **3,764,970** viajes donde `pickup_community_area` o `dropoff_community_area` eran nulos. Dado que el análisis geográfico es clave para el proyecto, estos registros fueron eliminados.
+  * **Viajes No Representativos:** Se detectaron **4,409,849** viajes que registraron 0 millas (`trip_miles`) pero un costo (`trip_total`) mayor a cero. Se determinó que estos registros probablemente representan tarifas de cancelación o errores de datos y fueron excluidos del análisis.
+  * **Viajes con Pagos Nulos:** Se encontraron **2,721** viajes donde `fare` o `trip_total` eran nulos. Al ser campos cruciales para el análisis, estos registros fueron eliminados.
+  * **Normalización de Nulos (Propinas y Peajes):** A diferencia de la tarifa, se asumió que un valor `NULL` en `tips` (propinas) y `tolls` (peajes) representaba un valor de **cero**. Por lo tanto, se ejecutó un `UPDATE` para asignarles el valor `0` en lugar de eliminarlos.
+
+Tras aplicar estas reglas de limpieza, el conjunto de datos en la tabla `taxis_raw` se redujo a **16,325,806** registros, listos para la fase de normalización.
+
+### Script de Limpieza Ejecutado
+
+```sql
+-- 1. Normalizar nulos en propinas y peajes
+UPDATE taxis_raw
+SET tips = 0
+WHERE tips IS NULL;
+
+UPDATE taxis_raw
+SET tolls = 0
+WHERE tolls IS NULL;
+
+-- 2. Eliminar viajes con tiempos inválidos
+DELETE FROM taxis_raw
+WHERE trip_end_timestamp <= trip_start_timestamp;
+
+-- 3. Eliminar viajes sin geografía 
+DELETE FROM taxis_raw
+WHERE pickup_community_area IS NULL OR dropoff_community_area IS NULL;
+
+-- 4. Eliminar viajes de 0 millas con costo 
+DELETE FROM taxis_raw
+WHERE trip_miles <= 0 AND trip_total > 0;
+
+-- 5. Eliminar viajes sin tarifa o total
+DELETE FROM taxis_raw
+WHERE fare IS NULL OR trip_total IS NULL;
+
+-- 6. Verificación final de conteo
+SELECT COUNT(*) FROM taxis_raw;
+-- Resultado: 16,325,806
+```
+
+
+Al terminar este script, la tabla `taxis_raw` quedó poblada con los datos listos para la siguiente fase de limpieza.
+
