@@ -199,7 +199,7 @@ SELECT COUNT(*) FROM taxis_raw;
 
 Al terminar este script, la tabla `taxis_raw` quedó poblada con los datos listos para la siguiente fase de normalización.
 
-### Normalización de los datos
+### D) Normalización de los datos
 Este data set tiene 12 columnas, de las cuales haremos 4 entidades.
 ##### Viajes:
 ```sql
