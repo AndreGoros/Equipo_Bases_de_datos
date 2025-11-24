@@ -11,7 +11,7 @@ from util.logger import LoggerSessionManager
 # --- CONFIGURACIÓN DE CONEXIÓN ---
 # Ajusta usuario, contraseña y puerto según tu configuración local de PostgreSQL
 # Formato: postgresql+psycopg2://usuario:password@host:puerto/nombre_base_datos
-DATABASE_URL = "postgresql+psycopg2://postgres:tu_password@localhost:5432/proyecto_taxis"
+DATABASE_URL = "postgresql+psycopg2://postgres:@localhost:5432/proyecto_taxis"
 
 
 class DBSessionManager:
