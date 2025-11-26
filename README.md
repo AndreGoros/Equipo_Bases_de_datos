@@ -83,8 +83,10 @@ CREATE TABLE taxis_raw_text (
 **Paso 3: Carga del CSV a la Staging Table**
 Se usó el comando `\copy` para volcar el contenido del CSV en la tabla `taxis_raw_text`.
 
+**Nota**: En el siguiente comando, es necesario cambiar <PATH_DEL_ARCHIVO> con la ruta exacta en la que se encuentra guardado el archivo CSV en el equipo.
+
 ```sql
-\copy taxis_raw_text FROM 'C:/Users/LARIG/OneDrive/Desktop/ITAM/Semestre_3/Bases_de_Datos/Taxi_Trips_(2013-2023)_20251102.csv' WITH (FORMAT CSV, HEADER TRUE);
+\copy taxis_raw_text FROM 'C:/<PATH_DEL_ARCHIVO>/Taxi_Trips_(2013-2023)_20251102.csv' WITH (FORMAT CSV, HEADER TRUE);
 ```
 
 **Paso 4: Creación de la Tabla Final y Limpieza (ETL)**
