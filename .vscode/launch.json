@@ -12,7 +12,9 @@
             "module": "uvicorn",
             "args": [
                 "main:app",
-                "--reload"
+                "--reload",
+                "--host",
+                "0.0.0.0"
             ],
             "jinja": true
         }
