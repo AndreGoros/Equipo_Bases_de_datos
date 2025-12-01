@@ -54,56 +54,31 @@ class ViajesRouter:
         self.router.add_api_route(
             "/{trip_id}", self.update, methods=["PUT"], response_model=ViajeSchema)
 
-    def list(self, request: Request, skip: int = 0, limit: int = 100, community_id: int = Query(default=None,ge=1, description="ID de Community Area de salida")):
+    def list(
+        self, 
+        request: Request, 
+        skip: int = 0, 
+        limit: int = 100,
+        pickup_community_id: int = Query(default=None, ge=1, description="Filtrar por zona de Recogida"),
+        dropoff_community_id: int = Query(default=None, ge=1, description="Filtrar por zona de Llegada")
+    ):
         """
-        Lista viajes. 
-        Nota: 'skip' y 'limit' son query params para paginación.
-        """
-        db_session: Session = request.state.db_session
-        self.logger.info(f"Listando viajes: skip={skip}, limit={limit}")
-
-        if community_id is not None:
-            # Filtrar por ciudad_id si se proporciona
-            viajes = (
-                db_session.query(Viaje)
-                .join(CiudadViaje, Viaje.trip_id == CiudadViaje.trip_id)
-                .join(CommunityArea, CiudadViaje.pickup_community_area == CommunityArea.community_id)
-                .filter(CommunityArea.community_id == community_id)
-                .offset(skip)
-                .limit(limit)
-                .all()
-            )
-            return viajes
-        
-        # Consulta básica. Si definiste relaciones en entities.py, 
-        # SQLAlchemy las cargará lazy o eager según configures.
-        viajes = db_session.query(Viaje).offset(skip).limit(limit).all()
-        return viajes
-
-    def list(self, request: Request, skip: int = 0, limit: int = 100, community_id: int = Query(default=None,ge=1, description="ID de Community Area de arrivo")):
-        """
-        Lista viajes. 
-        Nota: 'skip' y 'limit' son query params para paginación.
+        Lista viajes. Permite filtrar por zona de recogida o llegada.
         """
         db_session: Session = request.state.db_session
-        self.logger.info(f"Listando viajes: skip={skip}, limit={limit}")
+        self.logger.info(f"Listando viajes: skip={skip}, limit={limit}, pickup={pickup_community_id}, dropoff={dropoff_community_id}")
 
-        if community_id is not None:
-            # Filtrar por ciudad_id si se proporciona
-            viajes = (
-                db_session.query(Viaje)
-                .join(CiudadViaje, Viaje.trip_id == CiudadViaje.trip_id)
-                .join(CommunityArea, CiudadViaje.dropoff_community_area == CommunityArea.community_id)
-                .filter(CommunityArea.community_id == community_id)
-                .offset(skip)
-                .limit(limit)
-                .all()
-            )
-            return viajes
+        query = db_session.query(Viaje)
+        if pickup_community_id is not None or dropoff_community_id is not None:
+            query = query.join(CiudadViaje, Viaje.trip_id == CiudadViaje.trip_id)
+
+        if pickup_community_id is not None:
+            query = query.filter(CiudadViaje.pickup_community_area == pickup_community_id)
         
-        # Consulta básica. Si definiste relaciones en entities.py, 
-        # SQLAlchemy las cargará lazy o eager según configures.
-        viajes = db_session.query(Viaje).offset(skip).limit(limit).all()
+        if dropoff_community_id is not None:
+            query = query.filter(CiudadViaje.dropoff_community_area == dropoff_community_id)
+
+        viajes = query.offset(skip).limit(limit).all()
         return viajes
 
     def get(self, trip_id: str, request: Request):
