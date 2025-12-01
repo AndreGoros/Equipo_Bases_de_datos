@@ -213,7 +213,55 @@ ORDER BY
     month;
 	
 	
-	
+-- CONSULTA 7:
+-- Análisis propinas
+
+-- Medidas importantes: (suma total, promedio, propina máxima y propina mínima)
+
+-- Medidas importantes totales
+SELECT SUM(tips) as total_propinas, AVG(tips) as promedio_propinas, MAX(tips) as maximo, MIN(tips) as minimo
+FROM pagos;
+
+-- Medidas imporantes por año
+SELECT EXTRACT(YEAR FROM trip_start_timestamp) AS año, SUM(tips) as total_propinas, AVG(tips) as promedio_propinas, MAX(tips) as maximo, MIN(tips) as minimo
+FROM pagos
+JOIN viajes
+	ON viajes.trip_id = pagos.trip_id
+GROUP BY EXTRACT(YEAR FROM trip_start_timestamp);
+
+-- Medidas importantes por zona
+SELECT community_area.community AS comunidad, SUM(tips) as total_propinas, AVG(tips) as promedio_propinas
+FROM pagos
+JOIN viajes
+	ON viajes.trip_id = pagos.trip_id
+JOIN ciudad_viaje
+	ON viajes.trip_id = ciudad_viaje.trip_id
+JOIN community_area
+	ON ciudad_viaje.dropoff_community_area = community_area.community_id
+GROUP BY community_area.community;
+
+-- En qué comunidad se dejan más y menos propinas
+WITH total_propinas_comunidad AS (
+	SELECT community_area.community AS comunidad, SUM(tips) as total_propinas
+	FROM pagos
+	JOIN viajes
+		ON viajes.trip_id = pagos.trip_id
+	JOIN ciudad_viaje
+		ON viajes.trip_id = ciudad_viaje.trip_id
+	JOIN community_area
+		ON ciudad_viaje.dropoff_community_area = community_area.community_id
+	GROUP BY community_area.community
+)
+
+SELECT comunidad, total_propinas
+FROM total_propinas_comunidad
+WHERE total_propinas = (SELECT MAX(total_propinas) from total_propinas_comunidad)
+
+UNION
+
+SELECT comunidad, total_propinas
+FROM total_propinas_comunidad
+WHERE total_propinas = (SELECT MIN(total_propinas) from total_propinas_comunidad);
 	
 	
 	
