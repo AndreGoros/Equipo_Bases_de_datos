@@ -1,11 +1,13 @@
+from typing import Any, Dict, Tuple
 from fastapi import Request, Response
-from sqlalchemy import create_engine
+from sqlalchemy import ClauseElement, Compiled, create_engine
 from sqlalchemy.orm import sessionmaker
 from contextlib import contextmanager
 from sqlalchemy.orm import Session
 from starlette.middleware.base import BaseHTTPMiddleware
 
 # Asegúrate de que este archivo existe, o elimina la dependencia si no usas logger
+from db.entities import Base
 from util.logger import LoggerSessionManager 
 
 # --- CONFIGURACIÓN DE CONEXIÓN ---
@@ -22,6 +24,16 @@ class DBSessionManager:
         db_url: str = DATABASE_URL,
         echo: bool = False,
     ):
+        logger = logger_session_manager.get_logger(__name__)
+        def executor(
+            sql: ClauseElement | Compiled,
+            *multiparams: Tuple[Any, ...],
+            **params: Dict[str, Any],
+        ):
+            logger.info(sql.compile(dialect=self.engine.dialect))
+        self.engine = create_engine(db_url, strategy="mock", executor=executor)
+        Base.metadata.create_all(bind=self.engine)
+        
         # future=True asegura compatibilidad con SQLAlchemy 2.0
         self.engine = create_engine(db_url, echo=echo, future=True)
         

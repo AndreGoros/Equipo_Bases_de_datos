@@ -2,6 +2,7 @@ from typing import List
 from fastapi import APIRouter, HTTPException, Request, Query
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm.session import Session
+from sqlalchemy.exc import IntegrityError
 
 # Importamos Schemas (Pydantic)
 from api.models import (
@@ -60,7 +61,12 @@ class ViajesRouter:
         skip: int = 0, 
         limit: int = 100,
         pickup_community_id: int = Query(default=None, ge=1, description="Filtrar por zona de Recogida"),
-        dropoff_community_id: int = Query(default=None, ge=1, description="Filtrar por zona de Llegada")
+        dropoff_community_id: int = Query(default=None, ge=1, description="Filtrar por zona de Llegada"),
+        trip_miles_min: int = Query(default=None, ge=0, description="Distancia minima del viaje"),
+        trip_miles_max: int = Query(default=None, ge=0, description="Distancia maxima del viaje"),
+        trip_start_after: str = Query(default=None, description="Filtrar viajes que iniciaron después de esta fecha (YYYY-MM-DD)"),
+        trip_end_before: str = Query(default=None, description="Filtrar viajes que terminaron antes de esta fecha (YYYY-MM-DD)"),
+        trip_total: float = Query(default=None, ge=0, description="Filtrar por costo total minimo del viaje(propina incluida)")
     ):
         """
         Lista viajes. Permite filtrar por zona de recogida o llegada.
@@ -77,6 +83,22 @@ class ViajesRouter:
         
         if dropoff_community_id is not None:
             query = query.filter(CiudadViaje.dropoff_community_area == dropoff_community_id)
+
+        if trip_miles_min is not None:
+            query = query.filter(Viaje.trip_miles >= trip_miles_min)
+        
+        if trip_miles_max is not None:
+            query = query.filter(Viaje.trip_miles <= trip_miles_max)
+        
+        if trip_start_after is not None:
+            query = query.filter(Viaje.trip_start_timestamp >= trip_start_after)
+        
+        if trip_end_before is not None:
+            query = query.filter(Viaje.trip_end_timestamp <= trip_end_before)
+        
+        if trip_total is not None:
+            query = query.join(Pago, Viaje.trip_id == Pago.trip_id)
+            query = query.filter(Pago.trip_total  >= trip_total)
 
         viajes = query.offset(skip).limit(limit).all()
         return viajes
@@ -133,6 +155,8 @@ class ViajesRouter:
         # Actualizamos los campos
         # exclude_unset=True evita actualizar campos que no enviaste en el JSON
         for key, value in data.model_dump(exclude_unset=True).items():
+            if key == "trip_id": 
+                continue
             if hasattr(viaje, key):
                 setattr(viaje, key, value)
         
@@ -152,6 +176,10 @@ class PagosRouter:
         self.logger = logger_session_manager.get_logger(__name__)
 
         self.router = APIRouter(prefix="/pagos", tags=["Pagos"])
+
+        self.router.add_api_route(
+            "/", self.list, methods=["GET"], response_model=List[PagoSchema]
+        )
 
         # GET /pagos/{trip_id}
         self.router.add_api_route(
@@ -242,6 +270,21 @@ class PagosRouter:
         
         db_session.delete(pago)
         return {"message": f"Pago del viaje {trip_id} eliminado correctamente"}
+    
+    def list(
+        self, 
+        request: Request, 
+        skip: int = 0, 
+        limit: int = 100
+    ):
+        """
+        Lista pagos con paginación.
+        """
+        db_session: Session = request.state.db_session
+        self.logger.info(f"Listando pagos: skip={skip}, limit={limit}")
+
+        pagos = db_session.query(Pago).offset(skip).limit(limit).all()
+        return pagos
 
 
 # ==========================================
