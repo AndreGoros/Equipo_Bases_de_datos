@@ -271,21 +271,31 @@ class PagosRouter:
         db_session.delete(pago)
         return {"message": f"Pago del viaje {trip_id} eliminado correctamente"}
     
+    from fastapi import Query  # Asegúrate de tener esto importado
+
     def list(
         self, 
         request: Request, 
         skip: int = 0, 
-        limit: int = 100
+        limit: int = 100,
+        min_total: float = Query(default=None, ge=0, description="Filtrar pagos mayores o iguales a esta cantidad"),
+        max_total: float = Query(default=None, ge=0, description="Filtrar pagos menores o iguales a esta cantidad")
     ):
         """
-        Lista pagos con paginación.
+        Lista pagos con paginación y filtros por rango de monto.
         """
         db_session: Session = request.state.db_session
-        self.logger.info(f"Listando pagos: skip={skip}, limit={limit}")
+        self.logger.info(f"Listando pagos: skip={skip}, limit={limit}, min={min_total}, max={max_total}")
 
-        pagos = db_session.query(Pago).offset(skip).limit(limit).all()
+        query = db_session.query(Pago)
+        if min_total is not None:
+            query = query.filter(Pago.trip_total >= min_total)
+        
+        if max_total is not None:
+            query = query.filter(Pago.trip_total <= max_total)
+
+        pagos = query.offset(skip).limit(limit).all()
         return pagos
-
 
 # ==========================================
 # 3. ROUTER DE COMMUNITY AREAS (Catálogo)
