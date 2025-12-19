@@ -42,12 +42,7 @@ class Viaje(BaseModel):
     trip_end_timestamp: Optional[datetime] = None
     trip_miles: Optional[float] = None
 
-    # Opcional: Si quisieras devolver el pago y la ciudad anidados dentro del viaje
-    # tendrías que descomentar las siguientes líneas y asegurarte de que las relaciones
-    # existan en tu archivo entities.py (SQLAlchemy):
-    
-    # pago_info: Optional[Pago] = None
-    # ciudad_info: Optional[CiudadViaje] = None
+ 
 
     class Config:
         orm_mode = True

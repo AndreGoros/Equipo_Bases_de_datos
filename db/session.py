@@ -77,14 +77,11 @@ class DBSessionMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         try:
             with self.db_session_manager.get_managed_session() as db_session:
-                # Inyectamos la sesión en el estado del request
+
                 request.state.db_session = db_session
-                
-                # Procesamos el request
+    
                 response: Response = await call_next(request)
                 
                 return response
         except Exception as e:
-            # Si ocurre un error no manejado, aseguramos que el error suba
-            # (El middleware de excepciones de FastAPI lo capturará)
             raise e

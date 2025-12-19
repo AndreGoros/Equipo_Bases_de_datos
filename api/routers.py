@@ -4,17 +4,17 @@ from fastapi.responses import JSONResponse
 from sqlalchemy.orm.session import Session
 from sqlalchemy.exc import IntegrityError
 
-# Importamos Schemas (Pydantic)
+
 from api.models import (
     Viaje as ViajeSchema, 
     Pago as PagoSchema, 
     CommunityArea as CommunitySchema,
     CiudadViaje as CiudadSchema
 )
-# Importamos Entidades (SQLAlchemy)
+
 from db.entities import Viaje, Pago, CommunityArea, CiudadViaje
 
-# Importamos utilidades
+
 from db.session import DBSessionManager
 from util.logger import LoggerSessionManager
 
@@ -131,8 +131,6 @@ class ViajesRouter:
         db_session: Session = request.state.db_session
         self.logger.info(f"Creando nuevo viaje: {data.trip_id}")
         
-        # Convertimos el Schema Pydantic a la Entidad SQLAlchemy
-        # model_dump() se usa en Pydantic v2
         new_viaje = Viaje(**data.model_dump())
         
         try:
@@ -224,8 +222,7 @@ class PagosRouter:
             db_session.add(new_pago)
             db_session.flush()
             return new_pago
-        except IntegrityError as e:
-            # Esto pasa si el trip_id no existe en la tabla viajes
+        except IntegrityError as e:   # Esto pasa si el trip_id no existe en la tabla viajes
             db_session.rollback()
             self.logger.error(f"Error de integridad al crear pago: {e}")
             raise HTTPException(
@@ -242,12 +239,10 @@ class PagosRouter:
         db_session: Session = request.state.db_session
         self.logger.info(f"Actualizando pago del viaje ID: {trip_id}")
         
-        # Buscamos el pago
         pago = db_session.query(Pago).filter(Pago.trip_id == trip_id).first()
         if not pago:
             raise HTTPException(status_code=404, detail="Pago no encontrado")
 
-        # Actualizamos solo los campos enviados
         for key, value in data.model_dump(exclude_unset=True).items():
             # Evitamos modificar el trip_id ya que es la PK y FK
             if key == "trip_id":
@@ -270,8 +265,6 @@ class PagosRouter:
         
         db_session.delete(pago)
         return {"message": f"Pago del viaje {trip_id} eliminado correctamente"}
-    
-    from fastapi import Query  # Asegúrate de tener esto importado
 
     def list(
         self, 
@@ -310,18 +303,16 @@ class CommunityRouter:
 
         self.router = APIRouter(prefix="/communities", tags=["Community Areas"])
 
-        # GET /communities/
         self.router.add_api_route(
             "/", self.list, methods=["GET"], response_model=List[CommunitySchema]
         )
-        # GET /communities/{community_id}
+
         self.router.add_api_route(
             "/{community_id}", self.get, methods=["GET"], response_model=CommunitySchema
         )
 
     def list(self, request: Request):
         db_session: Session = request.state.db_session
-        # Tabla pequeña (catálogo), safe to fetch all
         return db_session.query(CommunityArea).all()
 
     def get(self, community_id: int, request: Request):

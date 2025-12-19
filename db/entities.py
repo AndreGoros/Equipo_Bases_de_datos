@@ -19,12 +19,8 @@ Base = declarative_base()
 class CommunityArea(Base):
     __tablename__ = "community_area"
 
-    # En tu SQL es INT PRIMARY KEY
     community_id: Mapped[int] = mapped_column(Integer, primary_key=True)
     community: Mapped[Optional[str]] = mapped_column(String(30), nullable=True)
-
-    # Relaciones inversas (Opcional, si quieres saber cuántos viajes salen de una zona)
-    # viajes_origen: Mapped[list["CiudadViaje"]] = relationship("CiudadViaje", back_populates="pickup_area_obj", foreign_keys="CiudadViaje.pickup_community_area")
 
 
 # ==========================================
@@ -33,17 +29,14 @@ class CommunityArea(Base):
 class Viaje(Base):
     __tablename__ = "viajes"
 
-    # En tu SQL trip_id es TEXT
     trip_id: Mapped[str] = mapped_column(Text, primary_key=True)
     taxi_id: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     
     trip_start_timestamp: Mapped[datetime] = mapped_column(DateTime, nullable=True)
     trip_end_timestamp: Mapped[datetime] = mapped_column(DateTime, nullable=True)
     
-    # NUMERIC en SQL suele mapearse a float o Decimal en Python
     trip_miles: Mapped[Optional[float]] = mapped_column(Numeric, nullable=True)
 
-    # --- RELACIONES ---
     # uselist=False indica que es una relación 1 a 1
     pago: Mapped["Pago"] = relationship(
         "Pago", back_populates="viaje", uselist=False, cascade="all, delete-orphan"
@@ -60,7 +53,6 @@ class Viaje(Base):
 class Pago(Base):
     __tablename__ = "pagos"
 
-    # El trip_id es PK y FK al mismo tiempo
     trip_id: Mapped[str] = mapped_column(
         ForeignKey("viajes.trip_id", ondelete="CASCADE"), 
         primary_key=True
@@ -82,13 +74,12 @@ class Pago(Base):
 class CiudadViaje(Base):
     __tablename__ = "ciudad_viaje"
 
-    # El trip_id es PK y FK al mismo tiempo
+
     trip_id: Mapped[str] = mapped_column(
         ForeignKey("viajes.trip_id", ondelete="CASCADE"), 
         primary_key=True
     )
 
-    # Claves foráneas hacia el catálogo de Community Area
     pickup_community_area: Mapped[Optional[int]] = mapped_column(
         ForeignKey("community_area.community_id"), nullable=True
     )
