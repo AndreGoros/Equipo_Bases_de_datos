@@ -333,4 +333,188 @@ dropoff_community_area INT
 INSERT INTO ciudad_viaje
 SELECT trip_id, pickup_community_area, dropoff_community_area
 FROM taxis_raw;
+``` 
+
+### E) Análisis de datos a través de consultas SQL y creación de atributos analíticos
+##### Análisis completo de las propinas
+Escogimos hacer un análisis completo de las propinas porque creemos que es una buena medida para medir el impacto de la pandemia tanto en la economía local como en la solidaridad de la población con los conductores de taxi.
+
+```sql
+-- Medidas imporantes por año
+SELECT EXTRACT(YEAR FROM trip_start_timestamp) AS año, SUM(tips) as total_propinas, AVG(tips) as promedio_propinas, MAX(tips) as maximo, MIN(tips) as minimo
+FROM pagos
+JOIN viajes
+	ON viajes.trip_id = pagos.trip_id
+GROUP BY EXTRACT(YEAR FROM trip_start_timestamp);
 ```
+Resultado:
+| Año  | Total de propinas | Promedio de propinas | Propina máxima | Propina mínima |
+|------|-------------------|----------------------|----------------|----------------|
+| 2019 | 19,580,923.31     | 2.31                 | 407.68         | 0.00           |
+| 2020 | 3,516,491.31      | 1.79                 | 200.00         | 0.00           |
+| 2021 | 4,683,228.12      | 2.14                 | 350.00         | 0.00           |
+| 2022 | 10,670,438.57     | 2.89                 | 210.00         | 0.00           |
+Como se puede observar, el total y el promedio de propinas cayó durante la pandemia. Sin embargo, es impresionante que a pesar de que en 2022 el total de propinas fue más bajo que en 2019, el promedio de propinas aumentó considerablemente.
+
+```sql
+-- Propina como porcentaje del total del viaje por periodo
+SELECT 
+    CASE 
+        WHEN viajes.trip_start_timestamp < '2020-03-01' THEN 'Pre-Pandemia'
+        WHEN viajes.trip_start_timestamp BETWEEN '2020-03-01' AND '2021-12-31' THEN 'Pandemia'
+        ELSE 'Post-Pandemia'
+    END AS periodo,
+    AVG((pagos.tips/NULLIF(pagos.trip_total, 0)) * 100) AS Porcentaje_propina_promedio
+FROM pagos
+JOIN viajes ON viajes.trip_id = pagos.trip_id
+GROUP BY periodo
+ORDER BY periodo;
+```
+Resultado:
+| Periodo        | Porcentaje promedio de propina |
+|----------------|--------------------------------|
+| Pre-Pandemia   | 9.39 %                         |
+| Pandemia       | 6.36 %                         |
+| Post-Pandemia  | 9.19 %                         |
+Como se puede observar, también el procentaje promedio de propina cayó durante la pandemia pero volvió a alzarse después de esta. A diferencia de la consulta anterior, el porcentaje no logró estar por arriba del año previo a la pandemia.
+
+```sql
+-- % de viajes con propina por periodo
+SELECT
+    CASE 
+        WHEN viajes.trip_start_timestamp < '2020-03-01' THEN 'Pre-Pandemia'
+        WHEN viajes.trip_start_timestamp BETWEEN '2020-03-01' AND '2021-12-31' THEN 'Pandemia'
+        ELSE 'Post-Pandemia'
+    END AS periodo,
+    COUNT(*) FILTER (WHERE pagos.tips > 0)::float / COUNT(*) * 100 AS porcentaje_con_propina
+FROM pagos
+JOIN viajes ON viajes.trip_id = pagos.trip_id
+GROUP BY periodo
+ORDER BY periodo;
+```
+Resultados:
+| Periodo        | Porcentaje de viajes con propina |
+|----------------|----------------------------------|
+| Pre-Pandemia   | 51.62 %                          |
+| Pandemia       | 35.22 %                          |
+| Post-Pandemia  | 51.47 %                          |
+De manera muy similar, podemos observar que la mayoría de personas dejaban propina antes de pandemia, tendencia que se dió a la baja durante la crisis y que volvió a la normalidad después de esta.
+
+```sql
+-- Promedio de propina por milla en distintos periodos
+SELECT
+    CASE 
+        WHEN viajes.trip_start_timestamp < '2020-03-01' 
+            THEN 'Pre-Pandemia'
+        WHEN viajes.trip_start_timestamp BETWEEN '2020-03-01' AND '2021-12-31' 
+            THEN 'Pandemia'
+        ELSE 'Post-Pandemia'
+    END AS periodo,
+    AVG(pagos.tips / NULLIF(viajes.trip_miles, 0)) AS propina_por_milla
+FROM pagos
+JOIN viajes ON viajes.trip_id = pagos.trip_id
+GROUP BY periodo
+ORDER BY periodo;
+```
+Resultados:
+| Periodo        | Propina promedio por milla |
+|----------------|----------------------------|
+| Pre-Pandemia   | 1.13                       |
+| Pandemia       | 0.75                       |
+| Post-Pandemia  | 0.91                       |
+Sorprendentemente, al repetir el análisis de propina promedio pero ahora por milla, podemos descubrir que el valor más alto lo tiene el año antes de la pandemia. A diferencia de los casos anteriores, esta variable no se logró recuperar totalmente un año después del evento.
+
+```sql
+-- Correlación entre millas y propinas en distintos periodos
+SELECT
+    CASE 
+        WHEN viajes.trip_start_timestamp < '2020-03-01' THEN 'Pre-Pandemia'
+        WHEN viajes.trip_start_timestamp BETWEEN '2020-03-01' AND '2021-12-31' THEN 'Pandemia'
+        ELSE 'Post-Pandemia'
+    END AS periodo,
+    CORR(viajes.trip_miles, pagos.tips) AS correlacion_millas_propina
+FROM pagos
+JOIN viajes ON viajes.trip_id = pagos.trip_id
+GROUP BY periodo;
+```
+Resultados:
+| Periodo        | Correlación millas–propina |
+|----------------|----------------------------|
+| Pre-Pandemia   | 0.53                       |
+| Pandemia       | 0.26                       |
+| Post-Pandemia  | 0.46                       |
+La correlación entre las millas recorridas y la propina sigue una tendencia similar al promedio entre estas mismas variables.
+
+```sql
+-- Cambio entre promedio de propinas por comunidad antes y después de pandemia
+WITH propinas_periodo AS (
+    SELECT
+        community_area.community AS comunidad,
+        CASE 
+            WHEN viajes.trip_start_timestamp < '2020-03-01' THEN 'Pre'
+            WHEN viajes.trip_start_timestamp BETWEEN '2020-03-01' AND '2021-12-31' THEN 'Pandemia'
+            ELSE 'Post'
+        END AS periodo,
+        AVG(pagos.tips) AS propina_promedio
+    FROM pagos
+    JOIN viajes
+        ON viajes.trip_id = pagos.trip_id
+    JOIN ciudad_viaje
+        ON ciudad_viaje.trip_id = viajes.trip_id
+    JOIN community_area
+        ON community_area.community_id = ciudad_viaje.dropoff_community_area
+    GROUP BY community_area.community, periodo
+),
+pivot AS (
+    SELECT
+        comunidad,
+        MAX(CASE WHEN periodo = 'Pre' THEN propina_promedio END) AS propina_pre,
+        MAX(CASE WHEN periodo = 'Pandemia' THEN propina_promedio END) AS propina_pandemia,
+        MAX(CASE WHEN periodo = 'Post' THEN propina_promedio END) AS propina_post,
+        (MAX(CASE WHEN periodo = 'Post' THEN propina_promedio END) - MAX(CASE WHEN periodo = 'Pre' THEN propina_promedio END)) AS cambio_pre_post
+    FROM propinas_periodo
+    GROUP BY comunidad
+),
+top_10 AS (
+    SELECT *
+    FROM pivot
+    ORDER BY cambio_pre_post DESC
+    LIMIT 10
+),
+bottom_10 AS (
+    SELECT *
+    FROM pivot
+    ORDER BY cambio_pre_post ASC
+    LIMIT 10
+)
+SELECT *
+FROM top_10
+UNION ALL
+SELECT *
+FROM bottom_10
+ORDER BY cambio_pre_post DESC;
+```
+Resultados:
+| Comunidad        | Pre  | Pandemia | Post | Cambio Pre–Post |
+|------------------|------|----------|------|-----------------|
+| Loop             | 2.07 | 2.32     | 3.34 | 1.27 |
+| Near North Side  | 2.07 | 2.34     | 3.07 | 1.00 |
+| Hermosa          | 0.89 | 0.83     | 1.84 | 0.95 |
+| West Town        | 2.31 | 2.50     | 3.19 | 0.89 |
+| North Center     | 3.26 | 2.88     | 4.02 | 0.75 |
+| Lincoln Park     | 2.32 | 2.42     | 3.04 | 0.72 |
+| Logan Square     | 2.69 | 2.45     | 3.41 | 0.72 |
+| Near South Side  | 2.23 | 1.85     | 2.82 | 0.59 |
+| Bridgeport       | 1.72 | 1.22     | 2.29 | 0.56 |
+| Lake View        | 2.60 | 2.35     | 3.12 | 0.52 |
+| Oakland          | 0.99 | 0.20     | 0.42 | -0.57 |
+| Hegewisch        | 1.01 | 0.45     | 0.37 | -0.63 |
+| Norwood Park     | 2.18 | 1.04     | 1.53 | -0.65 |
+| Archer Heights   | 1.98 | 1.12     | 1.32 | -0.66 |
+| Morgan Park      | 1.09 | 0.25     | 0.42 | -0.67 |
+| Beverly          | 3.62 | 1.49     | 2.82 | -0.80 |
+| Kenwood          | 2.13 | 0.72     | 1.33 | -0.80 |
+| East Side        | 1.27 | 0.30     | 0.45 | -0.82 |
+| Jefferson Park   | 3.22 | 1.72     | 1.77 | -1.45 |
+| Clearing         | 3.81 | 1.33     | 2.02 | -1.79 |
+Finalmente, hicimos un listado de las 10 comunidades más resilientes contra las 10 menos resilientes. Asombrosamente, podemos observar que hubo gran discrepancia entre la reacción de las comunidades de Chicago frente al mismo fenómeno. Por un lado, hubo comunidades que aumentaron aproximandamente 60% su promedio de propinas antes y después de la pandemia, mientras que hubo otras que lo disminuyeron casi en un 50%. Estos resultados muestran que no todas las comunidades se recuperaron a la misma velocidad de este fenómeno sanitario.
