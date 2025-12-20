@@ -354,6 +354,7 @@ Resultado:
 | 2020 | 3,516,491.31      | 1.79                 | 200.00         | 0.00           |
 | 2021 | 4,683,228.12      | 2.14                 | 350.00         | 0.00           |
 | 2022 | 10,670,438.57     | 2.89                 | 210.00         | 0.00           |
+
 Como se puede observar, el total y el promedio de propinas cayó durante la pandemia. Sin embargo, es impresionante que a pesar de que en 2022 el total de propinas fue más bajo que en 2019, el promedio de propinas aumentó considerablemente.
 
 ```sql
@@ -376,6 +377,7 @@ Resultado:
 | Pre-Pandemia   | 9.39 %                         |
 | Pandemia       | 6.36 %                         |
 | Post-Pandemia  | 9.19 %                         |
+
 Como se puede observar, también el procentaje promedio de propina cayó durante la pandemia pero volvió a alzarse después de esta. A diferencia de la consulta anterior, el porcentaje no logró estar por arriba del año previo a la pandemia.
 
 ```sql
@@ -398,6 +400,7 @@ Resultados:
 | Pre-Pandemia   | 51.62 %                          |
 | Pandemia       | 35.22 %                          |
 | Post-Pandemia  | 51.47 %                          |
+
 De manera muy similar, podemos observar que la mayoría de personas dejaban propina antes de pandemia, tendencia que se dió a la baja durante la crisis y que volvió a la normalidad después de esta.
 
 ```sql
@@ -422,6 +425,7 @@ Resultados:
 | Pre-Pandemia   | 1.13                       |
 | Pandemia       | 0.75                       |
 | Post-Pandemia  | 0.91                       |
+
 Sorprendentemente, al repetir el análisis de propina promedio pero ahora por milla, podemos descubrir que el valor más alto lo tiene el año antes de la pandemia. A diferencia de los casos anteriores, esta variable no se logró recuperar totalmente un año después del evento.
 
 ```sql
@@ -443,6 +447,7 @@ Resultados:
 | Pre-Pandemia   | 0.53                       |
 | Pandemia       | 0.26                       |
 | Post-Pandemia  | 0.46                       |
+
 La correlación entre las millas recorridas y la propina sigue una tendencia similar al promedio entre estas mismas variables.
 
 ```sql
@@ -517,4 +522,5 @@ Resultados:
 | East Side        | 1.27 | 0.30     | 0.45 | -0.82 |
 | Jefferson Park   | 3.22 | 1.72     | 1.77 | -1.45 |
 | Clearing         | 3.81 | 1.33     | 2.02 | -1.79 |
+
 Finalmente, hicimos un listado de las 10 comunidades más resilientes contra las 10 menos resilientes. Asombrosamente, podemos observar que hubo gran discrepancia entre la reacción de las comunidades de Chicago frente al mismo fenómeno. Por un lado, hubo comunidades que aumentaron aproximandamente 60% su promedio de propinas antes y después de la pandemia, mientras que hubo otras que lo disminuyeron casi en un 50%. Estos resultados muestran que no todas las comunidades se recuperaron a la misma velocidad de este fenómeno sanitario.
