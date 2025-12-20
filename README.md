@@ -336,7 +336,7 @@ FROM taxis_raw;
 ``` 
 
 ### E) Análisis de datos a través de consultas SQL y creación de atributos analíticos
-##### Análisis inicial
+### Análisis inicial
 tarifas: dolares, distancia: millas
 
 Para empezar a explorar los datos ya limpios y listos para trabajarse, optamos por medir en promedios trimestrales de los años 2019-2022. Consultamos la cantidad de viajes y la cantidad de taxis. Luego, las medidas por taxi, ya que estas ilustran cambios de manera más directa en los ingresos, porque no deflactamos los precios ante la inflación. Finalmente, los promedios de distancia y tarifa por distancia. Tomamos en cuenta solamente el precio de las tarifas (sin extras o peajes).
@@ -632,8 +632,37 @@ ORDER BY
 2022 |	5.74 |	25.47 |	41.41 |	27.38 |
 
 
-####Interpretación
+#### Interpretación
 Estos datos revelan que hay una centralización de la actividad en horarios diurnos. El intervalo de la tarde, de 12:00 a 17:59, no solo se mantuvo como el más popular, sino que aumentó su dominio: pasó de 38.71% en 2019 a 41.41% en 2022. 
 
 Sin embargo, es posible observar que los horarios asociados con la vida nocturna tuvieron una disminución permanente. La suma de los viajes durante la noche y la madrugada, pasaron de ser de 37.42% del total en 2019, a solo representar el 33.12% en 2022. Esto sugiere que, después de la pandemia, los taxis quedaron consolidados más como una herramienta de movilidad diurna que como un medio de transporte para la vida nocturna.
 
+
+#### Análisis detallado del ciclo diario 
+Se decidió hacer una consulta más detallada que desplejara la información hora por hora, para así comprender la naturaleza de la distribución observada en los intervalos de seis horas. El objetivo de esto fue identificar cambios sutiles en las horas pico tradicionales (durante las entradas y salidas laborales) que los intervalos generales podrían ocultar, y verificar si el fenómeno del Home Office alteró de alguna manera la forma que tiene la curva de demanda diaria.
+
+```sql
+-- Este análisis permite ver si hubo horas pico, para reducir los intervalos grandes que se tenían de 6 horas
+
+SELECT 
+    EXTRACT(YEAR FROM trip_start_timestamp) AS anio,
+    EXTRACT(HOUR FROM trip_start_timestamp) AS hora_exacta, 
+    COUNT(*) AS total_viajes,
+
+    ROUND(
+        (COUNT(*) * 100.0) / 
+        SUM(COUNT(*)) OVER (PARTITION BY EXTRACT(YEAR FROM trip_start_timestamp)), 2
+    ) AS porcentaje_por_anio
+FROM viajes
+GROUP BY 1, 2
+ORDER BY 1, 2;
+
+```
+#### Resultados destacados de las horas pico
+
+| Hora |2019 |	2020 | 2021 | 2022 |
+|-----|-----------|--------|---------|-------|
+|08:00 (Entrada) | 4.55% |	4.74% |4.07% |4.40% |
+|13:00	(Mediodía)| 5.88% | 6.31% | 6.99% | 6.57 | 
+|17:00 (Salida) | 7.97%  | 	8.20% | 7.34% | 7.54% | 
+|02:00 (Vida nocturna) | 1.17%  | 	0.89%  | 0.80%  | 0.67% | 
