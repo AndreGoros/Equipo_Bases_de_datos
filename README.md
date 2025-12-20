@@ -383,7 +383,7 @@ La tarifa promedio por milla es la más impresionante de todas, ya que observamo
 
 -----------------------------------------------------------------------------------
 
-##### Análisis completo de las propinas
+### Análisis completo de las propinas
 Escogimos hacer un análisis completo de las propinas porque creemos que es una buena medida para medir el impacto de la pandemia tanto en la economía local como en la solidaridad de la población con los conductores de taxi.
 
 ##### Medidas imporantes por año
@@ -579,7 +579,7 @@ Finalmente, hicimos un listado de las 10 comunidades más resilientes contra las
 
 -----------------------------------------------------------------------------------
 
-#### Análisis de la evolución temporal y cambios de rutina
+### Análisis de la evolución temporal y cambios de rutina
 Decidimos analizar la distribución temporal de los viajes porque los patrones horarios de transporte reflejan las rutinas sociales de la ciudad. El objetivo de este análisis fue determinar si existió una migración estructural de la demanda; es decir, verificar si los usuarios abandonaron horarios extremos (como las horas pico de oficina o la vida nocturna de madrugada) para desplazarse hacia horarios vespertinos. Lo anterior para ver si estos cambios estructurales se mantuvieron de manera permanente después de la pandemia, durante 2022.
 
 ####  Distribución porcentual por intervalos de tiempo
@@ -631,4 +631,9 @@ ORDER BY
 2021 |	5.97 |	25.18 |	42.48 |	26.37 |
 2022 |	5.74 |	25.47 |	41.41 |	27.38 |
 
+
+####Interpretación
+Estos datos revelan que hay una centralización de la actividad en horarios diurnos. El intervalo de la tarde, de 12:00 a 17:59, no solo se mantuvo como el más popular, sino que aumentó su dominio: pasó de 38.71% en 2019 a 41.41% en 2022. 
+
+Sin embargo, es posible observar que los horarios asociados con la vida nocturna tuvieron una disminución permanente. La suma de los viajes durante la noche y la madrugada, pasaron de ser de 37.42% del total en 2019, a solo representar el 33.12% en 2022. Esto sugiere que, después de la pandemia, los taxis quedaron consolidados más como una herramienta de movilidad diurna que como un medio de transporte para la vida nocturna.
 
