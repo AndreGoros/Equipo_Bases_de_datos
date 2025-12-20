@@ -336,6 +336,53 @@ FROM taxis_raw;
 ``` 
 
 ### E) Análisis de datos a través de consultas SQL y creación de atributos analíticos
+##### Análisis inicial
+tarifas: dolares
+distancia: millas
+
+Para empezar a explorar los datos ya limpios y listos para trabajarse, optamos por medir en promedios trimestrales de los años 2019-2022. Consultamos la cantidad de viajes y la cantidad de taxis. Luego, las medidas por taxi, ya que estas ilustran cambios de manera más directa en los ingresos, porque no deflactamos los precios ante la inflación. Finalmente, los promedios de distancia y tarifa por distancia. Tomamos en cuenta solamente el precio de las tarifas (sin extras o peajes).
+
+##### Valores exploratorios iniciales
+```sql
+SELECT EXTRACT(YEAR FROM trip_start_timestamp) AS año,
+       EXTRACT(QUARTER FROM trip_start_timestamp) AS trimestre,
+       COUNT(DISTINCT viajes.trip_id) AS cantidad_viajes,
+       COUNT (DISTINCT viajes.taxi_id) AS cantidad_taxis,
+       COUNT(DISTINCT viajes.trip_id) / COUNT(DISTINCT viajes.taxi_id) AS viajes_por_taxi,
+       SUM(pagos.fare) / COUNT(DISTINCT viajes.taxi_id) AS ingreso_por_taxi,
+       AVG(viajes.trip_miles) AS promedio_distancia_millas,
+       SUM(pagos.fare) / NULLIF(SUM(viajes.trip_miles), 0) AS promedio_tarifa_por_milla
+FROM viajes
+JOIN pagos
+	ON viajes.trip_id = pagos.trip_id
+GROUP BY EXTRACT(YEAR FROM trip_start_timestamp),
+         EXTRACT(QUARTER FROM trip_start_timestamp)
+ORDER BY año, trimestre;
+```
+|  Año | Trimestre | Cantidad de viajes | Cantidad de taxis | Viajes por taxi | Ingreso por taxi | Promedio distancia (millas) | Tarifa promedio por milla |
+| ---: | --------: | -----------------: | ----------------: | --------------: | ---------------: | --------------------------: | ------------------------: |
+| 2019 |         1 |          2,045,079 |             4,397 |             465 |         8,088.89 |                        5.03 |                      3.46 |
+| 2019 |         2 |          2,273,850 |             4,485 |             506 |         9,441.35 |                        5.49 |                      3.39 |
+| 2019 |         3 |          2,110,588 |             4,199 |             502 |         9,143.51 |                        5.31 |                      3.43 |
+| 2019 |         4 |          2,051,084 |             4,204 |             487 |         8,909.40 |                        5.21 |                      3.51 |
+| 2020 |         1 |          1,358,823 |             3,890 |             349 |         6,367.18 |                        4.99 |                      3.65 |
+| 2020 |         2 |            121,236 |               815 |             148 |         2,894.60 |                        5.64 |                      3.45 |
+| 2020 |         3 |            229,101 |               866 |             264 |         5,202.19 |                        5.66 |                      3.47 |
+| 2020 |         4 |            257,889 |               875 |             294 |         6,187.95 |                        6.16 |                      3.41 |
+| 2021 |         1 |            288,240 |               868 |             332 |         7,364.21 |                        6.73 |                      3.29 |
+| 2021 |         2 |            466,600 |             1,187 |             393 |         9,259.14 |                        7.21 |                      3.27 |
+| 2021 |         3 |            665,840 |             1,815 |             366 |         9,096.48 |                        7.57 |                      3.28 |
+| 2021 |         4 |            766,440 |             2,051 |             373 |         8,798.81 |                        7.18 |                      3.28 |
+| 2022 |         1 |            660,584 |             1,987 |             332 |         7,632.59 |                        7.06 |                      3.25 |
+| 2022 |         2 |          1,012,136 |             2,354 |             429 |        10,664.11 |                        7.71 |                      3.22 |
+| 2022 |         3 |          1,030,809 |             2,527 |             407 |         9,794.80 |                        7.58 |                      3.17 |
+| 2022 |         4 |            987,507 |             2,599 |             379 |         9,165.71 |                        7.69 |                      3.14 |
+
+La cantidad de taxis y de viajes, después de la caida, no lograron recuperarse totalamente. Se quedaron al rededor de la mitad de sus valores antes de la pandemia. Los ingresos y viajes por taxi, en cambio, aparte de estar altamente correlacionados, si lograron recuperarse a sus valores prepandemia, en algunos casos excediendolos. 
+El promedio de distancia en millas incrementó constantemente a través de los años, lo que demuestra un aumento de viajes más largos en taxi. Esto puede ser derivado de que la cuarentena que nos otorgó una noción de "solo tomar riesgos (como un taxi) si es necesario, como un viaje más largo. Si no, evitarlo". 
+La tarifa promedio por milla es la más impresionante de todas, ya que observamos un decrecimiento constante en la cantidad de dinero que se paga por milla en taxi desde la pandemia. Esto puede estar relacionado a la sustitución del taxi por otros medios de transporte, como compañías privadas de mobilidad (Uber, Lyft), entonces se deben de bajar los precios para ajustar el decrecimiento de la demanda por taxis convencionales.
+
+
 ##### Análisis completo de las propinas
 Escogimos hacer un análisis completo de las propinas porque creemos que es una buena medida para medir el impacto de la pandemia tanto en la economía local como en la solidaridad de la población con los conductores de taxi.
 
