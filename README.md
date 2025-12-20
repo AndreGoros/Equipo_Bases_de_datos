@@ -575,6 +575,7 @@ Resultados:
 | Jefferson Park   | 3.22 | 1.72     | 1.77 | -1.45 |
 | Clearing         | 3.81 | 1.33     | 2.02 | -1.79 |
 
+
 Finalmente, hicimos un listado de las 10 comunidades más resilientes contra las 10 menos resilientes. Asombrosamente, podemos observar que hubo gran discrepancia entre la reacción de las comunidades de Chicago frente al mismo fenómeno. Por un lado, hubo comunidades que aumentaron aproximandamente 60% su promedio de propinas antes y después de la pandemia, mientras que hubo otras que lo disminuyeron casi en un 50%. Estos resultados muestran que no todas las comunidades se recuperaron a la misma velocidad de este fenómeno sanitario.
 -----------------------------------------------------------------------------------
 
