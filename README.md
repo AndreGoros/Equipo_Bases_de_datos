@@ -788,4 +788,17 @@ Esta última división nos brinda un hallazgo más revelador sobre el cambio que
 
 Esto nos permite concluir que el transporte esencial, para los trabajadores de turno nocturno entre semana, resistió a la pandemia. Sin embargo, el mercado de transporte para la vida nocturna y el entretenimiento sufrió una disminución estructural del 47% de la cual no se ha recuperado por completo, lo que sugiere que los ciudadanos de Chicago han modificado permanentemente sus hábitos de socialización nocturna.
 
+##### Adicional: Creación del usuario 
+-- 1. Asignar contraseña 
+CREATE USER marco;
+ALTER USER marco WITH PASSWORD 'tu_contraseña_segura';
 
+-- 2. Dar permiso de uso sobre el esquema 'public' (necesario para ver las tablas)
+GRANT USAGE ON SCHEMA public TO marco;
+
+-- 3. Dar permisos específicos (SELECT, INSERT, UPDATE) en TODAS las tablas existentes
+GRANT SELECT, INSERT, UPDATE ON ALL TABLES IN SCHEMA public TO marco;
+
+GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO marco;
+
+ALTER USER marco WITH PASSWORD 'contrasena';
