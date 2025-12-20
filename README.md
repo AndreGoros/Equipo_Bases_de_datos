@@ -333,4 +333,459 @@ dropoff_community_area INT
 INSERT INTO ciudad_viaje
 SELECT trip_id, pickup_community_area, dropoff_community_area
 FROM taxis_raw;
+``` 
+
+### E) Análisis de datos a través de consultas SQL y creación de atributos analíticos
+### Análisis inicial
+tarifas: dolares, distancia: millas
+
+Para empezar a explorar los datos ya limpios y listos para trabajarse, optamos por medir en promedios trimestrales de los años 2019-2022. Consultamos la cantidad de viajes y la cantidad de taxis. Luego, las medidas por taxi, ya que estas ilustran cambios de manera más directa en los ingresos, porque no deflactamos los precios ante la inflación. Finalmente, los promedios de distancia y tarifa por distancia. Tomamos en cuenta solamente el precio de las tarifas (sin extras o peajes).
+
+##### Valores exploratorios iniciales
+```sql
+SELECT EXTRACT(YEAR FROM trip_start_timestamp) AS año,
+       EXTRACT(QUARTER FROM trip_start_timestamp) AS trimestre,
+       COUNT(DISTINCT viajes.trip_id) AS cantidad_viajes,
+       COUNT (DISTINCT viajes.taxi_id) AS cantidad_taxis,
+       COUNT(DISTINCT viajes.trip_id) / COUNT(DISTINCT viajes.taxi_id) AS viajes_por_taxi,
+       SUM(pagos.fare) / COUNT(DISTINCT viajes.taxi_id) AS ingreso_por_taxi,
+       AVG(viajes.trip_miles) AS promedio_distancia_millas,
+       SUM(pagos.fare) / NULLIF(SUM(viajes.trip_miles), 0) AS promedio_tarifa_por_milla
+FROM viajes
+JOIN pagos
+	ON viajes.trip_id = pagos.trip_id
+GROUP BY EXTRACT(YEAR FROM trip_start_timestamp),
+         EXTRACT(QUARTER FROM trip_start_timestamp)
+ORDER BY año, trimestre;
 ```
+|  Año | Trimestre | Cantidad de viajes | Cantidad de taxis | Viajes por taxi | Ingreso por taxi | Promedio distancia (millas) | Tarifa promedio por milla |
+| ---: | --------: | -----------------: | ----------------: | --------------: | ---------------: | --------------------------: | ------------------------: |
+| 2019 |         1 |          2,045,079 |             4,397 |             465 |         8,088.89 |                        5.03 |                      3.46 |
+| 2019 |         2 |          2,273,850 |             4,485 |             506 |         9,441.35 |                        5.49 |                      3.39 |
+| 2019 |         3 |          2,110,588 |             4,199 |             502 |         9,143.51 |                        5.31 |                      3.43 |
+| 2019 |         4 |          2,051,084 |             4,204 |             487 |         8,909.40 |                        5.21 |                      3.51 |
+| 2020 |         1 |          1,358,823 |             3,890 |             349 |         6,367.18 |                        4.99 |                      3.65 |
+| 2020 |         2 |            121,236 |               815 |             148 |         2,894.60 |                        5.64 |                      3.45 |
+| 2020 |         3 |            229,101 |               866 |             264 |         5,202.19 |                        5.66 |                      3.47 |
+| 2020 |         4 |            257,889 |               875 |             294 |         6,187.95 |                        6.16 |                      3.41 |
+| 2021 |         1 |            288,240 |               868 |             332 |         7,364.21 |                        6.73 |                      3.29 |
+| 2021 |         2 |            466,600 |             1,187 |             393 |         9,259.14 |                        7.21 |                      3.27 |
+| 2021 |         3 |            665,840 |             1,815 |             366 |         9,096.48 |                        7.57 |                      3.28 |
+| 2021 |         4 |            766,440 |             2,051 |             373 |         8,798.81 |                        7.18 |                      3.28 |
+| 2022 |         1 |            660,584 |             1,987 |             332 |         7,632.59 |                        7.06 |                      3.25 |
+| 2022 |         2 |          1,012,136 |             2,354 |             429 |        10,664.11 |                        7.71 |                      3.22 |
+| 2022 |         3 |          1,030,809 |             2,527 |             407 |         9,794.80 |                        7.58 |                      3.17 |
+| 2022 |         4 |            987,507 |             2,599 |             379 |         9,165.71 |                        7.69 |                      3.14 |
+
+La cantidad de taxis y de viajes, después de la caida, no lograron recuperarse totalamente. Se quedaron al rededor de la mitad de sus valores antes de la pandemia. Los ingresos y viajes por taxi, en cambio, aparte de estar altamente correlacionados, si lograron recuperarse a sus valores prepandemia, en algunos casos excediendolos. 
+El promedio de distancia en millas incrementó constantemente a través de los años, lo que demuestra un aumento de viajes más largos en taxi. Esto puede ser derivado de que la cuarentena que nos otorgó una noción de "solo tomar riesgos (como un taxi) si es necesario, como un viaje más largo. Si no, evitarlo". 
+La tarifa promedio por milla es la más impresionante de todas, ya que observamos un decrecimiento constante en la cantidad de dinero que se paga por milla en taxi desde la pandemia. Esto puede estar relacionado a la sustitución del taxi por otros medios de transporte, como compañías privadas de mobilidad (Uber, Lyft), entonces se deben de bajar los precios para ajustar el decrecimiento de la demanda por taxis convencionales.
+
+-----------------------------------------------------------------------------------
+
+### Análisis completo de las propinas
+Escogimos hacer un análisis completo de las propinas porque creemos que es una buena medida para medir el impacto de la pandemia tanto en la economía local como en la solidaridad de la población con los conductores de taxi.
+
+##### Medidas imporantes por año
+```sql
+SELECT EXTRACT(YEAR FROM trip_start_timestamp) AS año, SUM(tips) as total_propinas, AVG(tips) as promedio_propinas, MAX(tips) as maximo, MIN(tips) as minimo
+FROM pagos
+JOIN viajes
+	ON viajes.trip_id = pagos.trip_id
+GROUP BY EXTRACT(YEAR FROM trip_start_timestamp);
+```
+Resultado:
+| Año  | Total de propinas | Promedio de propinas | Propina máxima | Propina mínima |
+|------|-------------------|----------------------|----------------|----------------|
+| 2019 | 19,580,923.31     | 2.31                 | 407.68         | 0.00           |
+| 2020 | 3,516,491.31      | 1.79                 | 200.00         | 0.00           |
+| 2021 | 4,683,228.12      | 2.14                 | 350.00         | 0.00           |
+| 2022 | 10,670,438.57     | 2.89                 | 210.00         | 0.00           |
+
+Como se puede observar, el total y el promedio de propinas cayó durante la pandemia. Sin embargo, es impresionante que a pesar de que en 2022 el total de propinas fue más bajo que en 2019, el promedio de propinas aumentó considerablemente.
+
+
+##### Propina como porcentaje del total del viaje por periodo
+```sql
+SELECT 
+    CASE 
+        WHEN viajes.trip_start_timestamp < '2020-03-01' THEN 'Pre-Pandemia'
+        WHEN viajes.trip_start_timestamp BETWEEN '2020-03-01' AND '2021-12-31' THEN 'Pandemia'
+        ELSE 'Post-Pandemia'
+    END AS periodo,
+    AVG((pagos.tips/NULLIF(pagos.trip_total, 0)) * 100) AS Porcentaje_propina_promedio
+FROM pagos
+JOIN viajes ON viajes.trip_id = pagos.trip_id
+GROUP BY periodo
+ORDER BY periodo;
+```
+Resultado:
+| Periodo        | Porcentaje promedio de propina |
+|----------------|--------------------------------|
+| Pre-Pandemia   | 9.39 %                         |
+| Pandemia       | 6.36 %                         |
+| Post-Pandemia  | 9.19 %                         |
+
+Como se puede observar, también el procentaje promedio de propina cayó durante la pandemia pero volvió a alzarse después de esta. A diferencia de la consulta anterior, el porcentaje no logró estar por arriba del año previo a la pandemia.
+
+
+##### Porcentaje de viajes con propina por periodo
+```sql
+SELECT
+    CASE 
+        WHEN viajes.trip_start_timestamp < '2020-03-01' THEN 'Pre-Pandemia'
+        WHEN viajes.trip_start_timestamp BETWEEN '2020-03-01' AND '2021-12-31' THEN 'Pandemia'
+        ELSE 'Post-Pandemia'
+    END AS periodo,
+    COUNT(*) FILTER (WHERE pagos.tips > 0)::float / COUNT(*) * 100 AS porcentaje_con_propina
+FROM pagos
+JOIN viajes ON viajes.trip_id = pagos.trip_id
+GROUP BY periodo
+ORDER BY periodo;
+```
+Resultados:
+| Periodo        | Porcentaje de viajes con propina |
+|----------------|----------------------------------|
+| Pre-Pandemia   | 51.62 %                          |
+| Pandemia       | 35.22 %                          |
+| Post-Pandemia  | 51.47 %                          |
+
+De manera muy similar, podemos observar que la mayoría de personas dejaban propina antes de pandemia, tendencia que se dió a la baja durante la crisis y que volvió a la normalidad después de esta.
+
+
+##### Promedio de propina por milla en distintos periodos
+```sql
+SELECT
+    CASE 
+        WHEN viajes.trip_start_timestamp < '2020-03-01' 
+            THEN 'Pre-Pandemia'
+        WHEN viajes.trip_start_timestamp BETWEEN '2020-03-01' AND '2021-12-31' 
+            THEN 'Pandemia'
+        ELSE 'Post-Pandemia'
+    END AS periodo,
+    AVG(pagos.tips / NULLIF(viajes.trip_miles, 0)) AS propina_por_milla
+FROM pagos
+JOIN viajes ON viajes.trip_id = pagos.trip_id
+GROUP BY periodo
+ORDER BY periodo;
+```
+Resultados:
+| Periodo        | Propina promedio por milla |
+|----------------|----------------------------|
+| Pre-Pandemia   | 1.13                       |
+| Pandemia       | 0.75                       |
+| Post-Pandemia  | 0.91                       |
+
+Sorprendentemente, al repetir el análisis de propina promedio pero ahora por milla, podemos descubrir que el valor más alto lo tiene el año antes de la pandemia. A diferencia de los casos anteriores, esta variable no se logró recuperar totalmente un año después del evento.
+
+
+##### Correlación entre millas y propinas en distintos periodos
+```sql
+SELECT
+    CASE 
+        WHEN viajes.trip_start_timestamp < '2020-03-01' THEN 'Pre-Pandemia'
+        WHEN viajes.trip_start_timestamp BETWEEN '2020-03-01' AND '2021-12-31' THEN 'Pandemia'
+        ELSE 'Post-Pandemia'
+    END AS periodo,
+    CORR(viajes.trip_miles, pagos.tips) AS correlacion_millas_propina
+FROM pagos
+JOIN viajes ON viajes.trip_id = pagos.trip_id
+GROUP BY periodo;
+```
+Resultados:
+| Periodo        | Correlación millas–propina |
+|----------------|----------------------------|
+| Pre-Pandemia   | 0.53                       |
+| Pandemia       | 0.26                       |
+| Post-Pandemia  | 0.46                       |
+
+La correlación entre las millas recorridas y la propina sigue una tendencia similar al promedio entre estas mismas variables.
+
+
+##### Cambio entre promedio de propinas por comunidad antes y después de pandemia
+```sql
+WITH propinas_periodo AS (
+    SELECT
+        community_area.community AS comunidad,
+        CASE 
+            WHEN viajes.trip_start_timestamp < '2020-03-01' THEN 'Pre'
+            WHEN viajes.trip_start_timestamp BETWEEN '2020-03-01' AND '2021-12-31' THEN 'Pandemia'
+            ELSE 'Post'
+        END AS periodo,
+        AVG(pagos.tips) AS propina_promedio
+    FROM pagos
+    JOIN viajes
+        ON viajes.trip_id = pagos.trip_id
+    JOIN ciudad_viaje
+        ON ciudad_viaje.trip_id = viajes.trip_id
+    JOIN community_area
+        ON community_area.community_id = ciudad_viaje.dropoff_community_area
+    GROUP BY community_area.community, periodo
+),
+pivot AS (
+    SELECT
+        comunidad,
+        MAX(CASE WHEN periodo = 'Pre' THEN propina_promedio END) AS propina_pre,
+        MAX(CASE WHEN periodo = 'Pandemia' THEN propina_promedio END) AS propina_pandemia,
+        MAX(CASE WHEN periodo = 'Post' THEN propina_promedio END) AS propina_post,
+        (MAX(CASE WHEN periodo = 'Post' THEN propina_promedio END) - MAX(CASE WHEN periodo = 'Pre' THEN propina_promedio END)) AS cambio_pre_post
+    FROM propinas_periodo
+    GROUP BY comunidad
+),
+top_10 AS (
+    SELECT *
+    FROM pivot
+    ORDER BY cambio_pre_post DESC
+    LIMIT 10
+),
+bottom_10 AS (
+    SELECT *
+    FROM pivot
+    ORDER BY cambio_pre_post ASC
+    LIMIT 10
+)
+SELECT *
+FROM top_10
+UNION ALL
+SELECT *
+FROM bottom_10
+ORDER BY cambio_pre_post DESC;
+```
+Resultados:
+| Comunidad        | Pre  | Pandemia | Post | Cambio Pre–Post |
+|------------------|------|----------|------|-----------------|
+| Loop             | 2.07 | 2.32     | 3.34 | 1.27 |
+| Near North Side  | 2.07 | 2.34     | 3.07 | 1.00 |
+| Hermosa          | 0.89 | 0.83     | 1.84 | 0.95 |
+| West Town        | 2.31 | 2.50     | 3.19 | 0.89 |
+| North Center     | 3.26 | 2.88     | 4.02 | 0.75 |
+| Lincoln Park     | 2.32 | 2.42     | 3.04 | 0.72 |
+| Logan Square     | 2.69 | 2.45     | 3.41 | 0.72 |
+| Near South Side  | 2.23 | 1.85     | 2.82 | 0.59 |
+| Bridgeport       | 1.72 | 1.22     | 2.29 | 0.56 |
+| Lake View        | 2.60 | 2.35     | 3.12 | 0.52 |
+| Oakland          | 0.99 | 0.20     | 0.42 | -0.57 |
+| Hegewisch        | 1.01 | 0.45     | 0.37 | -0.63 |
+| Norwood Park     | 2.18 | 1.04     | 1.53 | -0.65 |
+| Archer Heights   | 1.98 | 1.12     | 1.32 | -0.66 |
+| Morgan Park      | 1.09 | 0.25     | 0.42 | -0.67 |
+| Beverly          | 3.62 | 1.49     | 2.82 | -0.80 |
+| Kenwood          | 2.13 | 0.72     | 1.33 | -0.80 |
+| East Side        | 1.27 | 0.30     | 0.45 | -0.82 |
+| Jefferson Park   | 3.22 | 1.72     | 1.77 | -1.45 |
+| Clearing         | 3.81 | 1.33     | 2.02 | -1.79 |
+
+Finalmente, hicimos un listado de las 10 comunidades más resilientes contra las 10 menos resilientes. Asombrosamente, podemos observar que hubo gran discrepancia entre la reacción de las comunidades de Chicago frente al mismo fenómeno. Por un lado, hubo comunidades que aumentaron aproximandamente 60% su promedio de propinas antes y después de la pandemia, mientras que hubo otras que lo disminuyeron casi en un 50%. Estos resultados muestran que no todas las comunidades se recuperaron a la misma velocidad de este fenómeno sanitario.
+
+##### Análisis mensual de demanda y precios por zona de pickup
+```sql
+SELECT
+    cv.pickup_community_area AS zona_id,
+    ca.community              AS nombre_zona,
+    EXTRACT(YEAR FROM v.trip_start_timestamp)  AS year,
+    EXTRACT(MONTH FROM v.trip_start_timestamp) AS month,
+
+    COUNT(*)                      AS viajes,
+    AVG(p.trip_total)             AS avg_trip_total,
+    SUM(p.trip_total)             AS ingresos_totales,
+    SUM(v.trip_miles)             AS millas_totales,
+    CASE
+        WHEN SUM(v.trip_miles) > 0
+            THEN SUM(p.trip_total) / SUM(v.trip_miles)
+        ELSE NULL
+    END AS precio_promedio_por_milla
+
+FROM viajes v
+JOIN pagos p
+    ON v.trip_id = p.trip_id
+JOIN ciudad_viaje cv
+    ON v.trip_id = cv.trip_id
+JOIN community_area ca
+    ON cv.pickup_community_area = ca.community_id
+
+WHERE cv.pickup_community_area IS NOT NULL
+
+GROUP BY
+    cv.pickup_community_area,
+    ca.community,
+    year,
+    month
+
+ORDER BY
+    zona_id,
+    year,
+    month;
+```
+Resultados:A continuación se muestra una muestra representativa de los resultados
+obtenidos con la consulta completa.
+### Muestra de resultados – Consulta 2 (Enero)
+
+| Zona | Comunidad   | Año | Mes | Viajes | Avg $ | Ingresos | Millas | $ / Milla |
+|----:|-------------|----:|----:|------:|------:|---------:|-------:|----------:|
+| 1 | Rogers Park | 2019 | 1 | 2688 | 18.31 | 49,214.21 | 13,272.34 | 3.71 |
+| 1 | Rogers Park | 2020 | 1 | 2528 | 19.52 | 49,345.39 | 13,321.10 | 3.70 |
+| 1 | Rogers Park | 2021 | 1 | 1335 | 21.48 | 28,676.04 | 8,238.02  | 3.48 |
+| 1 | Rogers Park | 2022 | 1 | 2029 | 24.80 | 50,313.33 | 14,710.90 | 3.42 |
+| 2 | West Ridge  | 2019 | 1 | 2420 | 18.29 | 44,259.07 | 11,694.93 | 3.78 |
+| 2 | West Ridge  | 2020 | 1 | 2397 | 18.18 | 43,578.13 | 11,915.26 | 3.66 |
+| 2 | West Ridge  | 2021 | 1 | 1677 | 20.77 | 34,835.28 | 9,938.99  | 3.50 |
+| 2 | West Ridge  | 2022 | 1 | 2470 | 24.46 | 60,411.79 | 17,095.45 | 3.53 |
+| 3 | Uptown      | 2019 | 1 | 7153 | 17.07 | 122,093.25 | 31,769.08 | 3.84 |
+| 3 | Uptown      | 2020 | 1 | 6303 | 17.62 | 111,028.67 | 28,590.74 | 3.88 |
+
+A partir de esta consulta se observa que la demanda y los precios de los viajes presentan diferencias significativas entre zonas y a lo largo del tiempo. En general, zonas con mayor número de viajes tienden a concentrar también mayores ingresos totales, mientras que el precio promedio por milla muestra variaciones más moderadas. Asimismo, al comparar distintos años para un mismo mes, se aprecia un incremento en el gasto promedio por viaje, lo que sugiere cambios en la estructura de precios y en las condiciones del mercado a lo largo del periodo analizado.
+
+
+-----------------------------------------------------------------------------------
+
+### Análisis de la evolución temporal y cambios de rutina
+Decidimos analizar la distribución temporal de los viajes porque los patrones horarios de transporte reflejan las rutinas sociales de la ciudad. El objetivo de este análisis fue determinar si existió una migración estructural de la demanda; es decir, verificar si los usuarios abandonaron horarios extremos (como las horas pico de oficina o la vida nocturna de madrugada) para desplazarse hacia horarios vespertinos. Lo anterior para ver si estos cambios estructurales se mantuvieron de manera permanente después de la pandemia, durante 2022.
+
+####  Distribución porcentual por intervalos de tiempo
+
+```sql
+WITH viajes_por_horarios AS (
+
+SELECT 
+	
+	-- extraer el año para comparar cómo ha evolucionado (2020, 2021, 2022...
+	EXTRACT (YEAR FROM trip_start_timestamp) AS anio, 
+	
+	--- hacer los intervalos en los que dividiremos el día
+	CASE 
+		WHEN EXTRACT (HOUR FROM trip_start_timestamp) >= 0 AND EXTRACT (HOUR FROM trip_start_timestamp) < 6 THEN 'Madugrada (00:00 - 05:59)'
+		WHEN EXTRACT (HOUR FROM trip_start_timestamp) >= 6 AND EXTRACT (HOUR FROM trip_start_timestamp) < 12 THEN 'Mañana (06:00 - 11:59)'
+		WHEN EXTRACT (HOUR FROM trip_start_timestamp) >= 12 AND EXTRACT (HOUR FROM trip_start_timestamp) < 18 THEN 'Tarde (12:00 - 17:59)'
+		ELSE 'Noche (18:00 - 23:59)'
+		END AS intervalos_horarios
+		
+		
+	FROM viajes
+)
+
+SELECT 
+    anio,
+    intervalos_horarios,
+    COUNT(*) AS total_viajes,
+    ROUND(
+        (COUNT(*) * 100.0) / 
+        SUM(COUNT(*)) OVER (PARTITION BY anio),2) 
+        AS porcentaje_por_anio
+
+FROM viajes_por_horarios
+
+GROUP BY 
+    anio, intervalos_horarios 
+
+ORDER BY 
+    anio ASC, intervalos_horarios ASC;
+	
+```
+##### Resultados:
+
+| Año |	Madrugada |	Mañana |	Tarde |	Noche |
+|-----|-----------|--------|---------|-------|
+2019 |	7.42 |	23.87 |	38.71 |	30 |
+2020 |	5.99 |	25.49 |	40.95 |	 27.57 |
+2021 |	5.97 |	25.18 |	42.48 |	26.37 |
+2022 |	5.74 |	25.47 |	41.41 |	27.38 |
+
+
+##### Interpretación
+Estos datos revelan que hay una centralización de la actividad en horarios diurnos. El intervalo de la tarde, de 12:00 a 17:59, no solo se mantuvo como el más popular, sino que aumentó su dominio: pasó de 38.71% en 2019 a 41.41% en 2022. 
+
+Sin embargo, es posible observar que los horarios asociados con la vida nocturna tuvieron una disminución permanente. La suma de los viajes durante la noche y la madrugada, pasaron de ser de 37.42% del total en 2019, a solo representar el 33.12% en 2022. Esto sugiere que, después de la pandemia, los taxis quedaron consolidados más como una herramienta de movilidad diurna que como un medio de transporte para la vida nocturna.
+
+
+#### Análisis detallado del ciclo diario 
+Se decidió hacer una consulta más detallada que desplejara la información hora por hora, para así comprender la naturaleza de la distribución observada en los intervalos de seis horas. El objetivo de esto fue identificar cambios sutiles en las horas pico tradicionales (durante las entradas y salidas laborales) que los intervalos generales podrían ocultar, y verificar si el fenómeno del Home Office alteró de alguna manera la forma que tiene la curva de demanda diaria.
+
+```sql
+-- Este análisis permite ver si hubo horas pico, para reducir los intervalos grandes que se tenían de 6 horas
+
+SELECT 
+    EXTRACT(YEAR FROM trip_start_timestamp) AS anio,
+    EXTRACT(HOUR FROM trip_start_timestamp) AS hora_exacta, 
+    COUNT(*) AS total_viajes,
+
+    ROUND(
+        (COUNT(*) * 100.0) / 
+        SUM(COUNT(*)) OVER (PARTITION BY EXTRACT(YEAR FROM trip_start_timestamp)), 2
+    ) AS porcentaje_por_anio
+FROM viajes
+GROUP BY 1, 2
+ORDER BY 1, 2;
+
+```
+##### Resultados destacados con las horas pico
+
+| Hora |2019 |	2020 | 2021 | 2022 |
+|-----|-----------|--------|---------|-------|
+|08:00 (Entrada) | 4.55% |	4.74% |4.07% |4.40% |
+|13:00	(Mediodía)| 5.88% | 6.31% | 6.99% | 6.57 | 
+|17:00 (Salida) | 7.97%  | 	8.20% | 7.34% | 7.54% | 
+|02:00 (Vida nocturna) | 1.17%  | 	0.89%  | 0.80%  | 0.67% | 
+
+##### Interpretación:
+Al observar el detalle horario, es posible percatarse que hubo un apalancamiento de la curva en la hora pico matutina. Mientras que en 2019 existía un pico marcado a las 8:00 (4.55%), en 2021 este cayó a su punto más bajo (4.07%). Se identifica que en 2022 hubo una leve recuperación; sin embargo, no se alcanzaron los niveles que se tenían antes de la pandemia.
+
+Lo más revelador es que hubo un desplazamiento hacia el mediodía. Las horas que van de las 10:00 a las 15:00 muestran porcentajes considerablemente más altos en los años después de la pandemia en comparación con los de 2019. Por ejemplo, a las 12:00, la demanda en 2021 (6.99)% fue considerablemente superior a la de 2019 (5.88%). Esto confirma que los viajes rígidos de la oficina fueron parcialmente sustituidos por viajes más flexibles a mediodía.
+
+#### Impacto diferenciado en el ocio nocturno (Comparativa de días laborales vs. fines de semana)
+
+
+Por último, tras observar la caída general que hubo en los viajes de madrugada, surgió la necesidad de entender la naturaleza de este descenso, por lo que decidimos segmentar de nuevo los datos, ahora entre “Fines de Semana” y “Días entre semana”. Esto se hizo bajo la hipótesis de que la movilidad de madrugada tiene dos propósitos diferentes, siendo laboral de lunes a viernes, y de ocio de sábados a domingos. Por este motivo, el objetivo fue aislar el impacto de la pandemia en la vida nocturna de la ciudad.
+
+```sql
+
+-- Análisis de días (entre semana vs. fin de semana)
+WITH categorias_dias AS (
+    SELECT 
+        EXTRACT(YEAR FROM trip_start_timestamp) AS anio,
+
+        CASE 
+            WHEN EXTRACT(ISODOW FROM trip_start_timestamp) IN (6, 7) THEN 'Fin de Semana'
+            ELSE 'Entre Semana (Lunes-Viernes)'
+        END AS tipo_dia,
+
+        CASE 
+            WHEN EXTRACT (HOUR FROM trip_start_timestamp) BETWEEN 0 AND 5 THEN 'Madrugada'
+            WHEN EXTRACT (HOUR FROM trip_start_timestamp) BETWEEN 6 AND 11 THEN 'Mañana'
+            WHEN EXTRACT (HOUR FROM trip_start_timestamp) BETWEEN 12 AND 17 THEN 'Tarde'
+            ELSE 'Noche'
+        END AS momento_dia
+    FROM viajes
+)
+
+SELECT 
+    anio,
+    tipo_dia,
+    momento_dia,
+    COUNT(*) AS total_viajes,
+    ROUND(
+        (COUNT(*) * 100.0) / 
+        SUM(COUNT(*)) OVER (PARTITION BY anio, tipo_dia), 2
+    ) AS porcentaje_relativo
+FROM categorias_dias
+GROUP BY 1, 2, 3
+ORDER BY anio, tipo_dia DESC, momento_dia;
+
+```
+
+
+##### Resultados:
+
+| Año | Fin de Semana (Madrugada) |	Entre Semana (Madrugada) | 
+|-----|-----------|--------|
+|2019 |	18.44 |	4.54 |
+|2020 |	14.83 |	3.91 |
+|2021 |	10.12 |	4.61 |
+|2022 |	9.85 |	4.43 |
+
+
+##### Interpretación:
+Esta última división nos brinda un hallazgo más revelador sobre el cambio que hubo después de la pandemia. Mientras que la demanda de madrugada en días laborales se mantuvo notablemente estable, fluctuando apenas entre el 4.54% en 2019 y el 4.43% en 2022, la demanda de fines de semana colapsó. En 2019, casi 1 de cada 5 viajes de fin de semana ocurría durante la madrugada, pero para 2022 esta proporción cayó a menos de 1 de cada 10. 
+
+Esto nos permite concluir que el transporte esencial, para los trabajadores de turno nocturno entre semana, resistió a la pandemia. Sin embargo, el mercado de transporte para la vida nocturna y el entretenimiento sufrió una disminución estructural del 47% de la cual no se ha recuperado por completo, lo que sugiere que los ciudadanos de Chicago han modificado permanentemente sus hábitos de socialización nocturna.
+
+
