@@ -790,13 +790,17 @@ Esto nos permite concluir que el transporte esencial, para los trabajadores de t
 
 ##### Adicional: Creación del usuario 
 -- 1. Asignar contraseña 
+
 CREATE USER marco;
+
 ALTER USER marco WITH PASSWORD 'tu_contraseña_segura';
 
 -- 2. Dar permiso de uso sobre el esquema 'public' (necesario para ver las tablas)
+
 GRANT USAGE ON SCHEMA public TO marco;
 
 -- 3. Dar permisos específicos (SELECT, INSERT, UPDATE) en TODAS las tablas existentes
+
 GRANT SELECT, INSERT, UPDATE ON ALL TABLES IN SCHEMA public TO marco;
 
 GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO marco;
