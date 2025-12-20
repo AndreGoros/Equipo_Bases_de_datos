@@ -672,3 +672,18 @@ Al observar el detalle horario, es posible percatarse que hubo un apalancamiento
 
 Lo más revelador es que hubo un desplazamiento hacia el mediodía. Las horas que van de las 10:00 a las 15:00 muestran porcentajes considerablemente más altos en los años después de la pandemia en comparación con los de 2019. Por ejemplo, a las 12:00, la demanda en 2021 (6.99)% fue considerablemente superior a la de 2019 (5.88%). Esto confirma que los viajes rígidos de la oficina fueron parcialmente sustituidos por viajes más flexibles a mediodía.
 
+#### Impacto diferenciado en el ocio nocturno (Comparativa de días laborales vs. fines de semana)
+
+##### Resultados:
+
+| Año | Fin de Semana (Madrugada) |	Entre Semana (Madrugada) | 
+|-----|-----------|--------|
+|2019 |	18.44 |	4.54 |
+|2020 |	14.83 |	3.91 |
+|2021 |	10.12 |	4.61 |
+|2022 |	9.85 |	4.43 |
+
+
+##### Interpretación:
+
+
