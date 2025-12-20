@@ -381,6 +381,7 @@ La cantidad de taxis y de viajes, después de la caida, no lograron recuperarse 
 El promedio de distancia en millas incrementó constantemente a través de los años, lo que demuestra un aumento de viajes más largos en taxi. Esto puede ser derivado de que la cuarentena que nos otorgó una noción de "solo tomar riesgos (como un taxi) si es necesario, como un viaje más largo. Si no, evitarlo". 
 La tarifa promedio por milla es la más impresionante de todas, ya que observamos un decrecimiento constante en la cantidad de dinero que se paga por milla en taxi desde la pandemia. Esto puede estar relacionado a la sustitución del taxi por otros medios de transporte, como compañías privadas de mobilidad (Uber, Lyft), entonces se deben de bajar los precios para ajustar el decrecimiento de la demanda por taxis convencionales.
 
+-----------------------------------------------------------------------------------
 
 ##### Análisis completo de las propinas
 Escogimos hacer un análisis completo de las propinas porque creemos que es una buena medida para medir el impacto de la pandemia tanto en la economía local como en la solidaridad de la población con los conductores de taxi.
@@ -575,3 +576,53 @@ Resultados:
 | Clearing         | 3.81 | 1.33     | 2.02 | -1.79 |
 
 Finalmente, hicimos un listado de las 10 comunidades más resilientes contra las 10 menos resilientes. Asombrosamente, podemos observar que hubo gran discrepancia entre la reacción de las comunidades de Chicago frente al mismo fenómeno. Por un lado, hubo comunidades que aumentaron aproximandamente 60% su promedio de propinas antes y después de la pandemia, mientras que hubo otras que lo disminuyeron casi en un 50%. Estos resultados muestran que no todas las comunidades se recuperaron a la misma velocidad de este fenómeno sanitario.
+-----------------------------------------------------------------------------------
+
+#### Análisis de la evolución temporal y cambios de rutina
+
+Decidimos analizar la distribución temporal de los viajes porque los patrones horarios de transporte reflejan las rutinas sociales de la ciudad. El objetivo de este análisis fue determinar si existió una migración estructural de la demanda; es decir, verificar si los usuarios abandonaron horarios extremos (como las horas pico de oficina o la vida nocturna de madrugada) para desplazarse hacia horarios vespertinos. Lo anterior para ver si estos cambios estructurales se mantuvieron de manera permanente después de la pandemia, durante 2022.
+
+####  Distribución porcentual por intervalos de tiempo
+
+```sql
+WITH viajes_por_horarios AS (
+
+SELECT 
+	
+	-- extraer el año para comparar cómo ha evolucionado (2020, 2021, 2022...
+	EXTRACT (YEAR FROM trip_start_timestamp) AS anio, 
+	
+	--- hacer los intervalos en los que dividiremos el día
+	CASE 
+		WHEN EXTRACT (HOUR FROM trip_start_timestamp) >= 0 AND EXTRACT (HOUR FROM trip_start_timestamp) < 6 THEN 'Madugrada (00:00 - 05:59)'
+		WHEN EXTRACT (HOUR FROM trip_start_timestamp) >= 6 AND EXTRACT (HOUR FROM trip_start_timestamp) < 12 THEN 'Mañana (06:00 - 11:59)'
+		WHEN EXTRACT (HOUR FROM trip_start_timestamp) >= 12 AND EXTRACT (HOUR FROM trip_start_timestamp) < 18 THEN 'Tarde (12:00 - 17:59)'
+		ELSE 'Noche (18:00 - 23:59)'
+		END AS intervalos_horarios
+		
+		
+	FROM viajes
+)
+
+SELECT 
+    anio,
+    intervalos_horarios,
+    COUNT(*) AS total_viajes,
+    ROUND(
+        (COUNT(*) * 100.0) / 
+        SUM(COUNT(*)) OVER (PARTITION BY anio),2) 
+        AS porcentaje_por_anio
+
+FROM viajes_por_horarios
+
+GROUP BY 
+    anio, intervalos_horarios 
+
+ORDER BY 
+    anio ASC, intervalos_horarios ASC;
+	
+```
+#### Resultados:
+
+
+
