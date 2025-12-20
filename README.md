@@ -575,12 +575,11 @@ Resultados:
 | Jefferson Park   | 3.22 | 1.72     | 1.77 | -1.45 |
 | Clearing         | 3.81 | 1.33     | 2.02 | -1.79 |
 
-
 Finalmente, hicimos un listado de las 10 comunidades más resilientes contra las 10 menos resilientes. Asombrosamente, podemos observar que hubo gran discrepancia entre la reacción de las comunidades de Chicago frente al mismo fenómeno. Por un lado, hubo comunidades que aumentaron aproximandamente 60% su promedio de propinas antes y después de la pandemia, mientras que hubo otras que lo disminuyeron casi en un 50%. Estos resultados muestran que no todas las comunidades se recuperaron a la misma velocidad de este fenómeno sanitario.
+
 -----------------------------------------------------------------------------------
 
 #### Análisis de la evolución temporal y cambios de rutina
-
 Decidimos analizar la distribución temporal de los viajes porque los patrones horarios de transporte reflejan las rutinas sociales de la ciudad. El objetivo de este análisis fue determinar si existió una migración estructural de la demanda; es decir, verificar si los usuarios abandonaron horarios extremos (como las horas pico de oficina o la vida nocturna de madrugada) para desplazarse hacia horarios vespertinos. Lo anterior para ver si estos cambios estructurales se mantuvieron de manera permanente después de la pandemia, durante 2022.
 
 ####  Distribución porcentual por intervalos de tiempo
@@ -625,5 +624,11 @@ ORDER BY
 ```
 #### Resultados:
 
+| Año |	Madrugada |	Mañana |	Tarde |	Noche |
+|-----|-----------|--------|---------|-------|
+2019 |	7.42 |	23.87 |	38.71 |	30 |
+2020 |	5.99 |	25.49 |	40.95 |	 27.57 |
+2021 |	5.97 |	25.18 |	42.48 |	26.37 |
+2022 |	5.74 |	25.47 |	41.41 |	27.38 |
 
 
