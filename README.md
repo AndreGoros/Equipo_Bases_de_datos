@@ -577,6 +577,65 @@ Resultados:
 
 Finalmente, hicimos un listado de las 10 comunidades más resilientes contra las 10 menos resilientes. Asombrosamente, podemos observar que hubo gran discrepancia entre la reacción de las comunidades de Chicago frente al mismo fenómeno. Por un lado, hubo comunidades que aumentaron aproximandamente 60% su promedio de propinas antes y después de la pandemia, mientras que hubo otras que lo disminuyeron casi en un 50%. Estos resultados muestran que no todas las comunidades se recuperaron a la misma velocidad de este fenómeno sanitario.
 
+##### Análisis mensual de demanda y precios por zona de pickup
+```sql
+SELECT
+    cv.pickup_community_area AS zona_id,
+    ca.community              AS nombre_zona,
+    EXTRACT(YEAR FROM v.trip_start_timestamp)  AS year,
+    EXTRACT(MONTH FROM v.trip_start_timestamp) AS month,
+
+    COUNT(*)                      AS viajes,
+    AVG(p.trip_total)             AS avg_trip_total,
+    SUM(p.trip_total)             AS ingresos_totales,
+    SUM(v.trip_miles)             AS millas_totales,
+    CASE
+        WHEN SUM(v.trip_miles) > 0
+            THEN SUM(p.trip_total) / SUM(v.trip_miles)
+        ELSE NULL
+    END AS precio_promedio_por_milla
+
+FROM viajes v
+JOIN pagos p
+    ON v.trip_id = p.trip_id
+JOIN ciudad_viaje cv
+    ON v.trip_id = cv.trip_id
+JOIN community_area ca
+    ON cv.pickup_community_area = ca.community_id
+
+WHERE cv.pickup_community_area IS NOT NULL
+
+GROUP BY
+    cv.pickup_community_area,
+    ca.community,
+    year,
+    month
+
+ORDER BY
+    zona_id,
+    year,
+    month;
+```
+Resultados:A continuación se muestra una muestra representativa de los resultados
+obtenidos con la consulta completa.
+### Muestra de resultados – Consulta 2 (Enero)
+
+| Zona | Comunidad   | Año | Mes | Viajes | Avg $ | Ingresos | Millas | $ / Milla |
+|----:|-------------|----:|----:|------:|------:|---------:|-------:|----------:|
+| 1 | Rogers Park | 2019 | 1 | 2688 | 18.31 | 49,214.21 | 13,272.34 | 3.71 |
+| 1 | Rogers Park | 2020 | 1 | 2528 | 19.52 | 49,345.39 | 13,321.10 | 3.70 |
+| 1 | Rogers Park | 2021 | 1 | 1335 | 21.48 | 28,676.04 | 8,238.02  | 3.48 |
+| 1 | Rogers Park | 2022 | 1 | 2029 | 24.80 | 50,313.33 | 14,710.90 | 3.42 |
+| 2 | West Ridge  | 2019 | 1 | 2420 | 18.29 | 44,259.07 | 11,694.93 | 3.78 |
+| 2 | West Ridge  | 2020 | 1 | 2397 | 18.18 | 43,578.13 | 11,915.26 | 3.66 |
+| 2 | West Ridge  | 2021 | 1 | 1677 | 20.77 | 34,835.28 | 9,938.99  | 3.50 |
+| 2 | West Ridge  | 2022 | 1 | 2470 | 24.46 | 60,411.79 | 17,095.45 | 3.53 |
+| 3 | Uptown      | 2019 | 1 | 7153 | 17.07 | 122,093.25 | 31,769.08 | 3.84 |
+| 3 | Uptown      | 2020 | 1 | 6303 | 17.62 | 111,028.67 | 28,590.74 | 3.88 |
+
+A partir de esta consulta se observa que la demanda y los precios de los viajes presentan diferencias significativas entre zonas y a lo largo del tiempo. En general, zonas con mayor número de viajes tienden a concentrar también mayores ingresos totales, mientras que el precio promedio por milla muestra variaciones más moderadas. Asimismo, al comparar distintos años para un mismo mes, se aprecia un incremento en el gasto promedio por viaje, lo que sugiere cambios en la estructura de precios y en las condiciones del mercado a lo largo del periodo analizado.
+
+
 -----------------------------------------------------------------------------------
 
 ### Análisis de la evolución temporal y cambios de rutina
