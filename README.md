@@ -337,8 +337,7 @@ FROM taxis_raw;
 
 ### E) Análisis de datos a través de consultas SQL y creación de atributos analíticos
 ##### Análisis inicial
-tarifas: dolares
-distancia: millas
+tarifas: dolares, distancia: millas
 
 Para empezar a explorar los datos ya limpios y listos para trabajarse, optamos por medir en promedios trimestrales de los años 2019-2022. Consultamos la cantidad de viajes y la cantidad de taxis. Luego, las medidas por taxi, ya que estas ilustran cambios de manera más directa en los ingresos, porque no deflactamos los precios ante la inflación. Finalmente, los promedios de distancia y tarifa por distancia. Tomamos en cuenta solamente el precio de las tarifas (sin extras o peajes).
 
