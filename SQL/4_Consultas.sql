@@ -42,6 +42,58 @@ GROUP BY
 
 ORDER BY 
     anio ASC, intervalos_horarios ASC;
+
+-- Consultas adicionales para profundizar 
+
+-- Análisis hora por hora
+
+-- Este análisis permite ver si hubo horas pico, para reducir los intervalos grandes que se tenían de 6 horas
+
+SELECT 
+    EXTRACT(YEAR FROM trip_start_timestamp) AS anio,
+    EXTRACT(HOUR FROM trip_start_timestamp) AS hora_exacta, 
+    COUNT(*) AS total_viajes,
+
+    ROUND(
+        (COUNT(*) * 100.0) / 
+        SUM(COUNT(*)) OVER (PARTITION BY EXTRACT(YEAR FROM trip_start_timestamp)), 2
+    ) AS porcentaje_por_anio
+FROM viajes
+GROUP BY 1, 2
+ORDER BY 1, 2;
+
+
+-- Análisis de días (entre semana vs. fin de semana)
+WITH categorias_dias AS (
+    SELECT 
+        EXTRACT(YEAR FROM trip_start_timestamp) AS anio,
+
+        CASE 
+            WHEN EXTRACT(ISODOW FROM trip_start_timestamp) IN (6, 7) THEN 'Fin de Semana'
+            ELSE 'Entre Semana (Lunes-Viernes)'
+        END AS tipo_dia,
+
+        CASE 
+            WHEN EXTRACT (HOUR FROM trip_start_timestamp) BETWEEN 0 AND 5 THEN 'Madrugada'
+            WHEN EXTRACT (HOUR FROM trip_start_timestamp) BETWEEN 6 AND 11 THEN 'Mañana'
+            WHEN EXTRACT (HOUR FROM trip_start_timestamp) BETWEEN 12 AND 17 THEN 'Tarde'
+            ELSE 'Noche'
+        END AS momento_dia
+    FROM viajes
+)
+
+SELECT 
+    anio,
+    tipo_dia,
+    momento_dia,
+    COUNT(*) AS total_viajes,
+    ROUND(
+        (COUNT(*) * 100.0) / 
+        SUM(COUNT(*)) OVER (PARTITION BY anio, tipo_dia), 2
+    ) AS porcentaje_relativo
+FROM categorias_dias
+GROUP BY 1, 2, 3
+ORDER BY anio, tipo_dia DESC, momento_dia;
 	
 
 -- CONSULTA 2: 
@@ -269,4 +321,5 @@ WHERE total_propinas = (SELECT MIN(total_propinas) from total_propinas_comunidad
 	
 	
 	
+
 	
