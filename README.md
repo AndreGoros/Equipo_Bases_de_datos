@@ -339,8 +339,8 @@ FROM taxis_raw;
 ##### Análisis completo de las propinas
 Escogimos hacer un análisis completo de las propinas porque creemos que es una buena medida para medir el impacto de la pandemia tanto en la economía local como en la solidaridad de la población con los conductores de taxi.
 
+###### Medidas imporantes por año
 ```sql
--- Medidas imporantes por año
 SELECT EXTRACT(YEAR FROM trip_start_timestamp) AS año, SUM(tips) as total_propinas, AVG(tips) as promedio_propinas, MAX(tips) as maximo, MIN(tips) as minimo
 FROM pagos
 JOIN viajes
@@ -357,8 +357,8 @@ Resultado:
 
 Como se puede observar, el total y el promedio de propinas cayó durante la pandemia. Sin embargo, es impresionante que a pesar de que en 2022 el total de propinas fue más bajo que en 2019, el promedio de propinas aumentó considerablemente.
 
+###### Propina como porcentaje del total del viaje por periodo
 ```sql
--- Propina como porcentaje del total del viaje por periodo
 SELECT 
     CASE 
         WHEN viajes.trip_start_timestamp < '2020-03-01' THEN 'Pre-Pandemia'
@@ -380,8 +380,8 @@ Resultado:
 
 Como se puede observar, también el procentaje promedio de propina cayó durante la pandemia pero volvió a alzarse después de esta. A diferencia de la consulta anterior, el porcentaje no logró estar por arriba del año previo a la pandemia.
 
+###### Porcentaje de viajes con propina por periodo
 ```sql
--- % de viajes con propina por periodo
 SELECT
     CASE 
         WHEN viajes.trip_start_timestamp < '2020-03-01' THEN 'Pre-Pandemia'
@@ -403,8 +403,8 @@ Resultados:
 
 De manera muy similar, podemos observar que la mayoría de personas dejaban propina antes de pandemia, tendencia que se dió a la baja durante la crisis y que volvió a la normalidad después de esta.
 
+###### Promedio de propina por milla en distintos periodos
 ```sql
--- Promedio de propina por milla en distintos periodos
 SELECT
     CASE 
         WHEN viajes.trip_start_timestamp < '2020-03-01' 
@@ -428,8 +428,8 @@ Resultados:
 
 Sorprendentemente, al repetir el análisis de propina promedio pero ahora por milla, podemos descubrir que el valor más alto lo tiene el año antes de la pandemia. A diferencia de los casos anteriores, esta variable no se logró recuperar totalmente un año después del evento.
 
+###### Correlación entre millas y propinas en distintos periodos
 ```sql
--- Correlación entre millas y propinas en distintos periodos
 SELECT
     CASE 
         WHEN viajes.trip_start_timestamp < '2020-03-01' THEN 'Pre-Pandemia'
@@ -450,8 +450,8 @@ Resultados:
 
 La correlación entre las millas recorridas y la propina sigue una tendencia similar al promedio entre estas mismas variables.
 
+###### Cambio entre promedio de propinas por comunidad antes y después de pandemia
 ```sql
--- Cambio entre promedio de propinas por comunidad antes y después de pandemia
 WITH propinas_periodo AS (
     SELECT
         community_area.community AS comunidad,
