@@ -674,6 +674,46 @@ Lo más revelador es que hubo un desplazamiento hacia el mediodía. Las horas qu
 
 #### Impacto diferenciado en el ocio nocturno (Comparativa de días laborales vs. fines de semana)
 
+
+Por último, tras observar la caída general que hubo en los viajes de madrugada, surgió la necesidad de entender la naturaleza de este descenso, por lo que decidimos segmentar de nuevo los datos, ahora entre “Fines de Semana” y “Días entre semana”. Esto se hizo bajo la hipótesis de que la movilidad de madrugada tiene dos propósitos diferentes, siendo laboral de lunes a viernes, y de ocio de sábados a domingos. Por este motivo, el objetivo fue aislar el impacto de la pandemia en la vida nocturna de la ciudad.
+
+```sql
+
+-- Análisis de días (entre semana vs. fin de semana)
+WITH categorias_dias AS (
+    SELECT 
+        EXTRACT(YEAR FROM trip_start_timestamp) AS anio,
+
+        CASE 
+            WHEN EXTRACT(ISODOW FROM trip_start_timestamp) IN (6, 7) THEN 'Fin de Semana'
+            ELSE 'Entre Semana (Lunes-Viernes)'
+        END AS tipo_dia,
+
+        CASE 
+            WHEN EXTRACT (HOUR FROM trip_start_timestamp) BETWEEN 0 AND 5 THEN 'Madrugada'
+            WHEN EXTRACT (HOUR FROM trip_start_timestamp) BETWEEN 6 AND 11 THEN 'Mañana'
+            WHEN EXTRACT (HOUR FROM trip_start_timestamp) BETWEEN 12 AND 17 THEN 'Tarde'
+            ELSE 'Noche'
+        END AS momento_dia
+    FROM viajes
+)
+
+SELECT 
+    anio,
+    tipo_dia,
+    momento_dia,
+    COUNT(*) AS total_viajes,
+    ROUND(
+        (COUNT(*) * 100.0) / 
+        SUM(COUNT(*)) OVER (PARTITION BY anio, tipo_dia), 2
+    ) AS porcentaje_relativo
+FROM categorias_dias
+GROUP BY 1, 2, 3
+ORDER BY anio, tipo_dia DESC, momento_dia;
+
+```
+
+
 ##### Resultados:
 
 | Año | Fin de Semana (Madrugada) |	Entre Semana (Madrugada) | 
@@ -685,5 +725,8 @@ Lo más revelador es que hubo un desplazamiento hacia el mediodía. Las horas qu
 
 
 ##### Interpretación:
+Esta última división nos brinda un hallazgo más revelador sobre el cambio que hubo después de la pandemia. Mientras que la demanda de madrugada en días laborales se mantuvo notablemente estable, fluctuando apenas entre el 4.54% en 2019 y el 4.43% en 2022, la demanda de fines de semana colapsó. En 2019, casi 1 de cada 5 viajes de fin de semana ocurría durante la madrugada, pero para 2022 esta proporción cayó a menos de 1 de cada 10. 
+
+Esto nos permite concluir que el transporte esencial, para los trabajadores de turno nocturno entre semana, resistió a la pandemia. Sin embargo, el mercado de transporte para la vida nocturna y el entretenimiento sufrió una disminución estructural del 47% de la cual no se ha recuperado por completo, lo que sugiere que los ciudadanos de Chicago han modificado permanentemente sus hábitos de socialización nocturna.
 
 
