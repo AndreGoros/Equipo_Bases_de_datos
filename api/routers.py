@@ -100,6 +100,9 @@ class ViajesRouter:
             query = query.join(Pago, Viaje.trip_id == Pago.trip_id)
             query = query.filter(Pago.trip_total  >= trip_total)
 
+        if  limit > 1000:
+            limit = 1000  
+            print("Limit maximo es 1000. Se ajusta a 1000.")
         viajes = query.offset(skip).limit(limit).all()
         return viajes
 
@@ -287,6 +290,10 @@ class PagosRouter:
         if max_total is not None:
             query = query.filter(Pago.trip_total <= max_total)
 
+        if limit > 1000:
+            limit = 1000  
+            print("Limit maximo es 1000. Se ajusta a 1000.")
+            
         pagos = query.offset(skip).limit(limit).all()
         return pagos
 
