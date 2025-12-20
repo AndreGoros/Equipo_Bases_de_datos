@@ -293,7 +293,7 @@ class PagosRouter:
         if limit > 1000:
             limit = 1000  
             print("Limit maximo es 1000. Se ajusta a 1000.")
-            
+
         pagos = query.offset(skip).limit(limit).all()
         return pagos
 
